@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Đăng ký - SmartDashcam</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+</head>
+<body class="auth-page">
+
+  <!-- Các thẻ icon nổi giống trang đăng nhập -->
+  <div class="floating-tile tile-speed">
+    <svg width="50" height="50" viewBox="0 0 50 50">
+      <circle cx="25" cy="25" r="21" fill="none" stroke="#ef4444" stroke-width="4"/>
+      <text x="25" y="31" text-anchor="middle" font-size="16" font-weight="700" fill="#1e293b">50</text>
+    </svg>
+  </div>
+  <div class="floating-tile tile-car">
+    <svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="#0284c7" stroke-width="2">
+      <path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/>
+    </svg>
+  </div>
+  <div class="floating-tile tile-light">
+    <svg width="44" height="56" viewBox="0 0 44 56">
+      <rect x="8" y="4" width="28" height="48" rx="14" fill="#1e293b"/>
+      <circle cx="22" cy="16" r="5" fill="#ef4444"/><circle cx="22" cy="28" r="5" fill="#facc15"/><circle cx="22" cy="40" r="5" fill="#22c55e"/>
+    </svg>
+  </div>
+  <div class="floating-tile soft-blue tile-wheel">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2">
+      <circle cx="12" cy="12" r="9"/><circle cx="12" cy="12" r="2"/><path d="M12 14v7M3.5 9.5L10 11.5M20.5 9.5L14 11.5"/>
+    </svg>
+  </div>
+  <div class="floating-tile soft-blue tile-road">
+    <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="#1d4ed8" stroke-width="2">
+      <path d="M6 20L10 4M18 20L14 4M12 7v3M12 14v3"/>
+    </svg>
+  </div>
+  <div class="floating-tile tile-warning">
+    <svg width="48" height="48" viewBox="0 0 48 48">
+      <rect x="10" y="10" width="28" height="28" rx="5" transform="rotate(45 24 24)" fill="#fef9c3" stroke="#f59e0b" stroke-width="3"/>
+      <path d="M24 18v12M18 24h12" stroke="#b45309" stroke-width="2.5" stroke-linecap="round"/>
+    </svg>
+  </div>
+  <div class="floating-tile tile-camera">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#7c3aed" stroke-width="2">
+      <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/>
+    </svg>
+  </div>
+  <div class="floating-tile tile-pin">
+    <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+      <path d="M21 10c0 7-9 13-9 13s-9-6-9-13a9 9 0 0 1 18 0z"/><circle cx="12" cy="10" r="3"/>
+    </svg>
+  </div>
+
+  <div class="auth-card">
+    <div class="auth-logo">
+      <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#ffffff" stroke-width="2">
+        <path d="M5 17h14v-5l-2-5H7l-2 5v5z"/><circle cx="7.5" cy="17.5" r="1.5"/><circle cx="16.5" cy="17.5" r="1.5"/>
+      </svg>
+    </div>
+
+    <h1 class="auth-title">SmartDashcam</h1>
+    <p class="auth-subtitle">Tạo tài khoản dành cho tài xế</p>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% for category, msg in messages %}
+        <div class="flash-msg flash-{{ category }}">{{ msg }}</div>
+      {% endfor %}
+    {% endwith %}
+
+    <form method="POST" action="/auth/register">
+      <div class="form-group">
+        <label class="form-label">Họ và tên</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/>
+            </svg>
+          </span>
+          <input type="text" name="full_name" class="auth-input" placeholder="Nguyễn Văn A" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Email</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="2" y="4" width="20" height="16" rx="2"/><path d="M22 6l-10 7L2 6"/>
+            </svg>
+          </span>
+          <input type="email" name="email" class="auth-input" placeholder="driver@email.com" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Mật khẩu</label>
+        <div class="input-wrap">
+          <span class="input-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+            </svg>
+          </span>
+          <input type="password" id="reg-pass" name="password" class="auth-input" placeholder="Tối thiểu 6 ký tự" minlength="6" required>
+          <button type="button" class="toggle-pass" onclick="togglePass('reg-pass')">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+            </svg>
+          </button>
+        </div>
+      </div>
+
+      <button type="submit" class="btn-primary-auth">Đăng ký</button>
+    </form>
+
+    <div class="auth-switch">
+      Đã có tài khoản? <a href="/auth/login" class="auth-link">Đăng nhập</a>
+    </div>
+
+    <div class="auth-footer">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2">
+        <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M9 12l2 2 4-4"/>
+      </svg>
+      <span>Thông tin được bảo mật an toàn</span>
+    </div>
+  </div>
+
+  <script>
+    function togglePass(id) {
+      const el = document.getElementById(id);
+      el.type = el.type === 'password' ? 'text' : 'password';
+    }
+  </script>
+</body>
+</html>

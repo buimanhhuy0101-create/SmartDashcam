@@ -1,0 +1,544 @@
+{% extends "base.html" %} {% block title %}HUD Lái xe - SmartDashcam{% endblock
+%} {% block body_class %}theme-soft-blue{% endblock %} {% block container_class
+%}container-fluid px-2 px-md-3 px-xl-4{% endblock %} {% block extra_css %}
+<style>
+  /* --- 1. Nền xanh pastel tươi sáng đồng bộ trang Login / Register --- */
+  body.theme-soft-blue {
+    background: linear-gradient(135deg, #e8f3ff 0%, #f5f9ff 50%, #e1efff 100%);
+    color: #1e293b;
+  }
+
+  body.theme-soft-blue .sdc-topbar {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #dbeafe;
+  }
+
+  body.theme-soft-blue .sdc-card {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 1.15rem;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.06);
+  }
+
+  /* Bổ sung vì Bootstrap 5 không có sẵn class .min-w-0 cho flex item */
+  .min-w-0 {
+    min-width: 0;
+  }
+
+  /* --- 2. Bố cục HUD: Mobile xếp dọc -> Desktop khung camera cực lớn --- */
+  .hud-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 0.875rem;
+  }
+
+  .hud-main-col {
+    flex: 1 1 auto;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .hud-side-col {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  /* Desktop (>= 1025px): Camera chiếm toàn bộ phần rộng, cột phải thu gọn 290px */
+  @media (min-width: 1025px) {
+    .hud-layout {
+      flex-direction: row;
+      align-items: stretch;
+    }
+
+    .hud-side-col {
+      width: 290px;
+      flex-shrink: 0;
+    }
+  }
+
+  /* --- 3. Khung Camera to, thoáng, giữ tỷ lệ chuẩn --- */
+  .hud-viewport {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    max-height: calc(100vh - 11.5rem);
+    background: linear-gradient(145deg, #0f172a 0%, #1e293b 100%);
+    border-radius: 1.15rem;
+    overflow: hidden;
+    border: 2px solid #bfdbfe;
+    box-shadow: 0 12px 30px rgba(37, 99, 235, 0.12);
+  }
+
+  .hud-viewport video,
+  .hud-viewport canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .hud-viewport canvas {
+    pointer-events: none;
+    z-index: 2;
+  }
+
+  /* Lớp phủ trạng thái trên góc khung camera */
+  .hud-overlay-top {
+    position: absolute;
+    top: 0.75rem;
+    left: 0.75rem;
+    right: 0.75rem;
+    z-index: 3;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.5rem;
+    pointer-events: none;
+  }
+
+  .hud-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    padding: 0.3rem 0.7rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.92);
+    backdrop-filter: blur(8px);
+    border: 1px solid #dbeafe;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: #1e293b;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.12);
+  }
+
+  .ws-dot {
+    width: 0.55rem;
+    height: 0.55rem;
+    border-radius: 50%;
+    background-color: #94a3b8;
+    display: inline-block;
+  }
+  .ws-dot.connected {
+    background-color: #16a34a;
+    box-shadow: 0 0 8px #22c55e;
+  }
+  .ws-dot.connecting {
+    background-color: #f59e0b;
+  }
+  .ws-dot.disconnected {
+    background-color: #ef4444;
+  }
+
+  /* Màn hình chờ khi chưa bật camera */
+  .hud-placeholder {
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 1.5rem;
+    color: #cbd5e1;
+  }
+
+  .hud-placeholder-icon {
+    width: 4rem;
+    height: 4rem;
+    border-radius: 1rem;
+    background: rgba(59, 130, 246, 0.18);
+    color: #60a5fa;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.85rem;
+    margin-bottom: 0.75rem;
+  }
+
+  /* --- 4. Thanh điều khiển gọn 1 hàng --- */
+  .hud-toolbar {
+    padding: 0.75rem 1rem !important;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+  }
+
+  .hud-toolbar-group {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .hud-btn-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    border: 1px solid transparent;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.5rem 1.35rem;
+    min-height: 44px;
+    border-radius: 0.65rem;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+    transition:
+      transform 0.16s ease,
+      box-shadow 0.18s ease,
+      background 0.18s ease;
+  }
+
+  .hud-btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(37, 99, 235, 0.35);
+  }
+
+  .hud-btn-primary:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(37, 99, 235, 0.25);
+  }
+
+  .hud-source-select {
+    width: auto;
+    min-width: 10.5rem;
+    border-color: #bfdbfe;
+    background-color: #f8fbff;
+    color: #1e293b;
+    font-weight: 500;
+  }
+
+  /* --- 5. Hộp cảnh báo thu gọn (Compact) --- */
+  .hud-side-card {
+    padding: 0.875rem !important;
+  }
+
+  .hud-side-title {
+    font-size: 0.9rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+    margin: 0;
+  }
+
+  .hud-alert-compact {
+    display: flex;
+    align-items: center;
+    gap: 0.65rem;
+    padding: 0.65rem 0.75rem;
+    border-radius: 0.75rem;
+    border: 1px solid #bbf7d0;
+    background-color: #f0fdf4;
+    transition: all 0.2s ease;
+  }
+
+  .hud-alert-compact.level-safe {
+    border-color: #bbf7d0;
+    background-color: #f0fdf4;
+    color: #166534;
+  }
+
+  .hud-alert-compact.level-warning {
+    border-color: #fde68a;
+    background-color: #fffbeb;
+    color: #92400e;
+  }
+
+  .hud-alert-compact.level-danger {
+    border-color: #fecaca;
+    background-color: #fef2f2;
+    color: #991b1b;
+    animation: pulseDangerLight 0.9s infinite alternate;
+  }
+
+  #alert-message {
+    white-space: normal;
+    overflow-wrap: break-word;
+    line-height: 1.3;
+  }
+
+  @keyframes pulseDangerLight {
+    from {
+      box-shadow: 0 0 0 rgba(239, 68, 68, 0.15);
+    }
+    to {
+      box-shadow: 0 0 14px rgba(239, 68, 68, 0.35);
+    }
+  }
+
+  /* --- 6. Danh sách biển báo gọn --- */
+  .hud-sign-list {
+    display: flex;
+    flex-direction: row;
+    gap: 0.6rem;
+    overflow-x: auto;
+    padding-bottom: 0.25rem;
+    scroll-snap-type: x mandatory;
+  }
+
+  .hud-sign-item {
+    flex: 0 0 12.5rem;
+    scroll-snap-align: start;
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    padding: 0.55rem 0.65rem;
+    border-radius: 0.75rem;
+    background-color: #f8fbff;
+    border: 1px solid #e0ecff;
+  }
+
+  .hud-sign-icon {
+    width: 3.75rem;
+    height: 2.35rem;
+    padding: 0 0.25rem;
+    border-radius: 0.5rem;
+    object-fit: cover;
+    background-color: #ffffff;
+    border: 1px solid #dbeafe;
+    font-size: 0.72rem !important;
+    line-height: 1.1;
+    white-space: nowrap;
+    flex-shrink: 0;
+  }
+
+  .hud-btn-stop {
+    background: linear-gradient(135deg, #dc2626 0%, #ef4444 100%);
+    border: 1px solid transparent;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.5rem 1.35rem;
+    min-height: 44px;
+    border-radius: 0.65rem;
+    box-shadow: 0 4px 12px rgba(220, 38, 38, 0.25);
+    transition:
+      transform 0.16s ease,
+      box-shadow 0.18s ease,
+      background 0.18s ease;
+  }
+
+  .hud-btn-stop:hover:not(:disabled) {
+    background: linear-gradient(135deg, #b91c1c 0%, #dc2626 100%);
+    color: #ffffff;
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(220, 38, 38, 0.35);
+  }
+
+  .hud-btn-stop:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 2px 8px rgba(220, 38, 38, 0.25);
+  }
+
+  .hud-btn-stop:disabled {
+    opacity: 0.55;
+    pointer-events: auto;
+    cursor: not-allowed;
+    box-shadow: none;
+  }
+
+  @media (min-width: 1025px) {
+    .hud-sign-list {
+      flex-direction: column;
+      overflow-x: visible;
+      max-height: 22rem;
+      overflow-y: auto;
+    }
+
+    .hud-sign-item {
+      flex: 0 0 auto;
+      width: 100%;
+    }
+  }
+
+  /* Tối ưu xoay ngang điện thoại */
+  @media (max-height: 500px) and (orientation: landscape) {
+    .hud-viewport {
+      max-height: 70vh;
+    }
+  }
+</style>
+{% endblock %} {% block content %}
+<div class="hud-layout">
+  <!-- ================= CỘT CHÍNH: KHUNG CAMERA LỚN + THANH ĐIỀU KHIỂN ================= -->
+  <div class="hud-main-col">
+    <!-- Khung Video + Canvas -->
+    <div class="hud-viewport">
+      <div class="hud-overlay-top">
+        <div class="hud-pill" id="ws-status-pill">
+          <span class="ws-dot disconnected" id="ws-status-dot"></span>
+          <span id="ws-status-text">Chưa kết nối AI</span>
+        </div>
+
+        <div class="d-flex align-items-center gap-2">
+          <div class="hud-pill">
+            <i class="bi bi-speedometer2 text-primary"></i>
+            <span id="hud-fps">0 FPS</span>
+          </div>
+          <div class="hud-pill">
+            <i class="bi bi-stopwatch text-warning"></i>
+            <span>TTC: <strong id="hud-min-ttc">--</strong>s</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Màn hình chờ -->
+      <div class="hud-placeholder" id="hud-placeholder">
+        <div class="hud-placeholder-icon">
+          <i class="bi bi-camera-video-off"></i>
+        </div>
+        <p class="mb-1 fw-semibold text-white">Camera đang tắt</p>
+        <small class="text-light opacity-75"
+          >Chọn nguồn Camera hoặc Video mẫu rồi nhấn
+          <strong>Bắt đầu</strong>.</small
+        >
+      </div>
+
+      <video id="hud-video" autoplay playsinline muted></video>
+      <canvas id="hud-canvas"></canvas>
+    </div>
+
+    <!-- Thanh điều khiển 1 hàng gọn gàng -->
+    <div class="sdc-card hud-toolbar">
+      <div class="hud-toolbar-group">
+        <button type="button" id="btn-start-hud" class="btn hud-btn-primary">
+          <i class="bi bi-play-circle-fill fs-5"></i>
+          <span>Bắt đầu</span>
+        </button>
+
+        <button
+          type="button"
+          id="btn-stop-hud"
+          class="btn btn-outline-danger hud-btn-stop"
+        >
+          <i class="bi bi-stop-fill fs-5"></i>
+          <span>Dừng</span>
+        </button>
+
+        <select
+          id="hud-source-select"
+          class="form-select hud-source-select"
+          aria-label="Chọn nguồn video"
+        >
+          <option value="camera" selected>Camera trực tiếp</option>
+          <option value="video_file">Video mẫu (.mp4)</option>
+        </select>
+        <input
+          type="file"
+          id="hud-video-file"
+          accept="video/*"
+          class="d-none"
+        />
+      </div>
+
+      <div class="hud-toolbar-group">
+        <button
+          type="button"
+          id="btn-toggle-tts"
+          class="btn btn-light border text-primary"
+          title="Bật/Tắt giọng nói"
+        >
+          <i class="bi bi-megaphone-fill"></i>
+          <span class="d-none d-sm-inline">TTS: Bật</span>
+        </button>
+
+        <button
+          type="button"
+          id="btn-toggle-sound"
+          class="btn btn-light border text-warning"
+          title="Bật/Tắt còi cảnh báo"
+        >
+          <i class="bi bi-volume-up-fill"></i>
+          <span class="d-none d-sm-inline">Còi: Bật</span>
+        </button>
+
+        <a
+          href="/driver/settings"
+          class="btn btn-light border text-secondary"
+          title="Cài đặt ngưỡng"
+        >
+          <i class="bi bi-sliders"></i>
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= CỘT PHẢI: CẢNH BÁO GỌN + BIỂN BÁO ================= -->
+  <aside class="hud-side-col">
+    <!-- Hộp Cảnh báo an toàn (Compact) -->
+    <section class="sdc-card hud-side-card" aria-label="Trạng thái cảnh báo">
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="hud-side-title">
+          <i class="bi bi-shield-check text-primary"></i>
+          <span>Trạng thái an toàn</span>
+        </h2>
+        <span class="badge rounded-pill text-bg-success" id="alert-level-badge"
+          >An toàn</span
+        >
+      </div>
+
+      <div id="hud-alert-box" class="hud-alert-compact level-safe">
+        <i
+          id="alert-icon"
+          class="bi bi-check-circle-fill fs-4 flex-shrink-0"
+        ></i>
+        <div class="min-w-0 flex-grow-1">
+          <div id="alert-title" class="fw-bold small lh-sm">
+            Đường thông thoáng
+          </div>
+          <div id="alert-message" class="small opacity-75">
+            Sẵn sàng giám sát ADAS
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Danh sách Biển báo gần đây -->
+    <section
+      class="sdc-card hud-side-card flex-grow-1 d-flex flex-column"
+      aria-label="Biển báo gần đây"
+    >
+      <div class="d-flex align-items-center justify-content-between mb-2">
+        <h2 class="hud-side-title">
+          <i class="bi bi-sign-stop-fill text-primary"></i>
+          <span>Biển báo gần đây</span>
+        </h2>
+        <span
+          class="badge rounded-pill bg-primary-subtle text-primary"
+          id="sign-count-badge"
+          >0</span
+        >
+      </div>
+
+      <div id="hud-sign-list" class="hud-sign-list flex-grow-1">
+        <div
+          id="hud-sign-empty"
+          class="text-center text-muted py-4 my-auto w-100"
+        >
+          <i
+            class="bi bi-signpost-2 fs-3 text-primary opacity-50 d-block mb-1"
+          ></i>
+          <small>Chưa phát hiện biển báo</small>
+        </div>
+      </div>
+    </section>
+  </aside>
+</div>
+{% endblock %} 
+{% block extra_js %}
+<script>
+  window.CURRENT_USER_ID = "{{ session.get('user_id') or '' }}";
+</script>
+<script src="{{ url_for('static', filename='js/tts.js') }}"></script>
+<script src="{{ url_for('static', filename='js/alert_sound.js') }}"></script>
+<script src="{{ url_for('static', filename='js/hud.js') }}"></script>
+{% endblock %}

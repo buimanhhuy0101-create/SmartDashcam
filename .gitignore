@@ -1,0 +1,67 @@
+
+# ==========================================
+# 1. PYTHON & VIRTUAL ENVIRONMENT
+# ==========================================
+.venv/
+venv/
+env/
+web_app/.venv/
+ai_service/.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+
+# ==========================================
+# 2. ENVIRONMENT VARIABLES
+# ==========================================
+.env
+.env.*
+!.env.example
+
+# ==========================================
+# 3. AI MODELS
+# ==========================================
+*.pt
+*.onnx
+*.engine
+*.torchscript
+
+# ==========================================
+# 4. DATABASE & GENERATED DATA
+# ==========================================
+storage/database/*.db
+storage/database/*.db-shm
+storage/database/*.db-wal
+
+# ==========================================
+# 5. SNAPSHOTS & GENERATED MEDIA
+# ==========================================
+storage/snapshots/*.jpg
+storage/snapshots/*.jpeg
+storage/snapshots/*.png
+storage/videos/
+storage/temp/
+
+# ==========================================
+# 6. PYTHON CACHE & TESTING
+# ==========================================
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# ==========================================
+# 7. LOGS & TEMPORARY FILES
+# ==========================================
+*.log
+*.tmp
+*.bak
+
+# ==========================================
+# 8. IDE & OPERATING SYSTEM
+# ==========================================
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

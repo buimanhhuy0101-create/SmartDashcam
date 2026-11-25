@@ -1,0 +1,538 @@
+{% extends "base.html" %}
+
+{% block title %}Cài đặt tài xế - SmartDashcam{% endblock %}
+{% block body_class %}theme-soft-blue{% endblock %}
+
+{% block extra_css %}
+<style>
+  body.theme-soft-blue {
+    background: linear-gradient(135deg, #e8f3ff 0%, #f5f9ff 50%, #e1efff 100%);
+    color: #1e293b;
+  }
+
+  body.theme-soft-blue .sdc-topbar {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #dbeafe;
+  }
+
+  body.theme-soft-blue .sdc-card {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 1.15rem;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.06);
+  }
+
+  /* Thẻ chọn loại phương tiện */
+  .vehicle-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 769px) {
+    .vehicle-grid {
+      grid-template-columns: repeat(4, 1fr);
+    }
+  }
+
+  .vehicle-option input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .vehicle-card {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+    padding: 1rem 0.75rem;
+    min-height: 5.5rem;
+    border-radius: 0.95rem;
+    border: 2px solid #e0ecff;
+    background: #f8fbff;
+    color: #475569;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.18s ease;
+  }
+
+  .vehicle-card i {
+    font-size: 1.65rem;
+    color: #64748b;
+  }
+
+  .vehicle-option input[type="radio"]:checked + .vehicle-card {
+    border-color: #2563eb;
+    background: #eff6ff;
+    color: #1d4ed8;
+    box-shadow: 0 6px 16px rgba(37, 99, 235, 0.15);
+  }
+
+  .vehicle-option input[type="radio"]:checked + .vehicle-card i {
+    color: #2563eb;
+  }
+
+  /* Nút chọn chế độ lái nhanh (Presets) */
+  .preset-btn {
+    border: 1px solid #bfdbfe;
+    background: #f8fbff;
+    color: #1e293b;
+    font-size: 0.85rem;
+    font-weight: 600;
+    border-radius: 0.7rem;
+    padding: 0.45rem 0.85rem;
+    min-height: 44px;
+    transition: all 0.15s ease;
+  }
+
+  .preset-btn:hover {
+    background: #eff6ff;
+    border-color: #2563eb;
+    color: #1d4ed8;
+  }
+
+  /* Thanh trượt */
+  .slider-box {
+    padding: 0.9rem 1rem;
+    border-radius: 0.9rem;
+    background: #f8fbff;
+    border: 1px solid #e0ecff;
+  }
+
+  .slider-value-badge {
+    font-variant-numeric: tabular-nums;
+    font-weight: 700;
+    padding: 0.25rem 0.65rem;
+    border-radius: 999px;
+    font-size: 0.85rem;
+  }
+
+  .form-range {
+    height: 1.75rem;
+    cursor: pointer;
+  }
+
+  /* Switch Toggle */
+  .setting-toggle-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.9rem 1rem;
+    border-radius: 0.9rem;
+    background: #f8fbff;
+    border: 1px solid #e0ecff;
+    min-height: 4rem;
+  }
+
+  .setting-switch .form-check-input {
+    width: 3.1rem;
+    height: 1.65rem;
+    cursor: pointer;
+    margin-top: 0;
+  }
+
+  .settings-actions {
+    display: flex;
+    flex-direction: column-reverse;
+    gap: 0.75rem;
+  }
+
+  @media (min-width: 481px) {
+    .settings-actions {
+      flex-direction: row;
+      justify-content: flex-end;
+    }
+  }
+
+  .pw-input-group .form-control {
+    min-height: 44px;
+    border-color: #dbeafe;
+    background-color: #f8fbff;
+  }
+
+  .pw-input-group .form-control:focus {
+    background-color: #ffffff;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 0.2rem rgba(37, 99, 235, 0.12);
+  }
+
+  .btn-toggle-pw {
+    min-width: 44px;
+    min-height: 44px;
+    border-color: #dbeafe;
+    background-color: #f8fbff;
+    color: #475569;
+  }
+
+  .btn-toggle-pw:hover {
+    background-color: #eff6ff;
+    border-color: #bfdbfe;
+    color: #1d4ed8;
+  }
+
+  .btn-save-primary {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    border: none;
+    color: #ffffff;
+    font-weight: 600;
+    padding: 0.6rem 1.5rem;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.25);
+  }
+
+  .btn-save-primary:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    color: #ffffff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set s = setting if (setting is defined and setting) else {} %}
+{% set cur_vehicle = s.vehicle_type if (s.vehicle_type is defined and s.vehicle_type) else 'car' %}
+{% set cur_conf = s.conf_threshold if (s.conf_threshold is defined and s.conf_threshold is not none) else 0.50 %}
+{% set cur_ttc_warn = s.ttc_warning_sec if (s.ttc_warning_sec is defined and s.ttc_warning_sec is not none) else 2.5 %}
+{% set cur_ttc_danger = s.ttc_danger_sec if (s.ttc_danger_sec is defined and s.ttc_danger_sec is not none) else 1.2 %}
+{% set cur_tts = s.tts_enabled if (s.tts_enabled is defined and s.tts_enabled is not none) else True %}
+{% set cur_sound = s.alert_sound_enabled if (s.alert_sound_enabled is defined and s.alert_sound_enabled is not none) else True %}
+
+<form method="POST" action="/driver/settings" id="driver-settings-form" class="d-flex flex-column gap-3">
+
+  <!-- ================= TIÊU ĐỀ ================= -->
+  <div class="sdc-card">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+      <div>
+        <h1 class="h2 mb-1 text-primary d-flex align-items-center gap-2">
+          <i class="bi bi-sliders"></i>
+          <span>Cài đặt cá nhân</span>
+        </h1>
+        <p class="text-muted small mb-0">
+          Cấu hình sẽ được lưu vào hệ thống và tự động đồng bộ sang dịch vụ AI ngay khi bạn bấm Lưu.
+        </p>
+      </div>
+      <a href="/driver/hud" class="btn btn-outline-primary">
+        <i class="bi bi-camera-video"></i> Quay về HUD
+      </a>
+    </div>
+  </div>
+
+  <!-- ================= CARD 1: LOẠI PHƯƠNG TIỆN ================= -->
+  <section class="sdc-card">
+    <h2 class="h3 mb-1 d-flex align-items-center gap-2">
+      <i class="bi bi-car-front-fill text-primary"></i>
+      <span>1. Loại phương tiện đang lái</span>
+    </h2>
+    <p class="text-muted small mb-3">
+      Hệ thống chỉ đọc cảnh báo đối với các biển báo áp dụng cho loại phương tiện này.
+    </p>
+
+    <div class="vehicle-grid">
+      <label class="vehicle-option position-relative">
+        <input type="radio" name="vehicle_type" value="car" {{ 'checked' if cur_vehicle == 'car' else '' }}>
+        <span class="vehicle-card"><i class="bi bi-car-front"></i><span>Ô tô con</span></span>
+      </label>
+
+      <label class="vehicle-option position-relative">
+        <input type="radio" name="vehicle_type" value="motorbike" {{ 'checked' if cur_vehicle == 'motorbike' else '' }}>
+        <span class="vehicle-card"><i class="bi bi-bicycle"></i><span>Xe máy</span></span>
+      </label>
+
+      <label class="vehicle-option position-relative">
+        <input type="radio" name="vehicle_type" value="truck" {{ 'checked' if cur_vehicle == 'truck' else '' }}>
+        <span class="vehicle-card"><i class="bi bi-truck"></i><span>Xe tải</span></span>
+      </label>
+
+      <label class="vehicle-option position-relative">
+        <input type="radio" name="vehicle_type" value="bus" {{ 'checked' if cur_vehicle == 'bus' else '' }}>
+        <span class="vehicle-card"><i class="bi bi-bus-front"></i><span>Xe khách</span></span>
+      </label>
+    </div>
+  </section>
+
+  <!-- ================= HÀNG 2: NGƯỠNG AI & ÂM THANH ================= -->
+  <div class="row g-3">
+
+    <!-- CARD 2: NGƯỠNG AI & TTC -->
+    <div class="col-12 col-lg-7">
+      <section class="sdc-card h-100 d-flex flex-column gap-3">
+        <div class="d-flex flex-wrap align-items-center justify-content-between gap-2">
+          <div>
+            <h2 class="h3 mb-1 d-flex align-items-center gap-2">
+              <i class="bi bi-cpu-fill text-primary"></i>
+              <span>2. Ngưỡng AI &amp; Độ nhạy va chạm</span>
+            </h2>
+            <p class="text-muted small mb-0">Chọn nhanh theo cung đường hoặc kéo thanh trượt tùy chỉnh.</p>
+          </div>
+        </div>
+
+        <!-- Nút chọn nhanh chế độ lái -->
+        <div class="d-flex flex-wrap gap-2">
+          <button type="button" class="btn preset-btn js-preset" data-conf="0.55" data-warn="2.0" data-danger="1.0">
+            <i class="bi bi-buildings text-primary"></i> Nội thành
+          </button>
+          <button type="button" class="btn preset-btn js-preset" data-conf="0.50" data-warn="2.5" data-danger="1.2">
+            <i class="bi bi-signpost-2 text-success"></i> Tiêu chuẩn
+          </button>
+          <button type="button" class="btn preset-btn js-preset" data-conf="0.45" data-warn="3.5" data-danger="1.8">
+            <i class="bi bi-speedometer2 text-warning"></i> Cao tốc
+          </button>
+        </div>
+
+        <!-- Ngưỡng tin cậy AI -->
+        <div class="slider-box">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <label for="conf_threshold" class="fw-semibold mb-0">Ngưỡng tin cậy AI (Confidence)</label>
+            <span class="slider-value-badge bg-primary-subtle text-primary" id="conf-val">{{ '%.2f'|format(cur_conf) }}</span>
+          </div>
+          <input type="range" class="form-range" id="conf_threshold" name="conf_threshold"
+                 min="0.25" max="0.90" step="0.05" value="{{ cur_conf }}">
+          <div class="d-flex justify-content-between small text-muted">
+            <span>0.25 (Nhạy cao)</span>
+            <span>0.90 (Chặt chẽ)</span>
+          </div>
+        </div>
+
+        <!-- TTC Cảnh báo (WARNING) -->
+        <div class="slider-box">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <label for="ttc_warning_sec" class="fw-semibold mb-0">Ngưỡng TTC Cảnh báo (WARNING)</label>
+            <span class="slider-value-badge bg-warning-subtle text-warning-emphasis" id="ttc-warn-val">{{ '%.1f'|format(cur_ttc_warn) }} giây</span>
+          </div>
+          <input type="range" class="form-range" id="ttc_warning_sec" name="ttc_warning_sec"
+                 min="1.5" max="6.0" step="0.1" value="{{ cur_ttc_warn }}">
+          <div class="d-flex justify-content-between small text-muted">
+            <span>1.5s</span>
+            <span>6.0s (Báo sớm)</span>
+          </div>
+        </div>
+
+        <!-- TTC Nguy hiểm (CRITICAL) -->
+        <div class="slider-box">
+          <div class="d-flex align-items-center justify-content-between mb-1">
+            <label for="ttc_danger_sec" class="fw-semibold mb-0">Ngưỡng TTC Nguy hiểm (CRITICAL)</label>
+            <span class="slider-value-badge bg-danger-subtle text-danger" id="ttc-danger-val">{{ '%.1f'|format(cur_ttc_danger) }} giây</span>
+          </div>
+          <input type="range" class="form-range" id="ttc_danger_sec" name="ttc_danger_sec"
+                 min="0.5" max="3.5" step="0.1" value="{{ cur_ttc_danger }}">
+          <div class="d-flex justify-content-between small text-muted">
+            <span>0.5s (Rất gần)</span>
+            <span>3.5s</span>
+          </div>
+          <div id="ttc-error-msg" class="text-danger small mt-1 d-none">
+            <i class="bi bi-exclamation-circle"></i> Ngưỡng TTC nguy hiểm phải nhỏ hơn ngưỡng TTC cảnh báo.
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- CARD 3: ÂM THANH & TTS -->
+    <div class="col-12 col-lg-5">
+      <section class="sdc-card h-100 d-flex flex-column justify-content-between gap-3">
+        <div class="d-flex flex-column gap-3">
+          <div>
+            <h2 class="h3 mb-1 d-flex align-items-center gap-2">
+              <i class="bi bi-volume-up-fill text-primary"></i>
+              <span>3. Âm thanh &amp; Giọng nói</span>
+            </h2>
+            <p class="text-muted small mb-0">
+              Cảnh báo âm thanh giúp bạn giữ tập trung tuyệt đối vào mặt đường.
+            </p>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="fw-semibold">Đọc biển báo bằng giọng nói (TTS)</div>
+              <div class="small text-muted">Tự động đọc nội dung biển báo khớp với loại xe</div>
+            </div>
+            <div class="form-check form-switch setting-switch m-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     id="tts_enabled" name="tts_enabled" {{ 'checked' if cur_tts else '' }}>
+            </div>
+          </div>
+
+          <div class="setting-toggle-row">
+            <div>
+              <div class="fw-semibold">Còi cảnh báo va chạm</div>
+              <div class="small text-muted">Phát âm thanh bíp khi vật cản vào vùng nguy hiểm</div>
+            </div>
+            <div class="form-check form-switch setting-switch m-0">
+              <input class="form-check-input" type="checkbox" role="switch"
+                     id="alert_sound_enabled" name="alert_sound_enabled" {{ 'checked' if cur_sound else '' }}>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-3 rounded-3 bg-primary-subtle text-primary-emphasis small d-flex align-items-start gap-2">
+          <i class="bi bi-arrow-repeat mt-1 flex-shrink-0"></i>
+          <span>Sau khi lưu, hệ thống sẽ tự động gọi API đồng bộ cấu hình sang FastAPI AI Service.</span>
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <!-- ================= THANH LƯU CÀI ĐẶT ================= -->
+  <div class="sdc-card">
+    <div class="settings-actions">
+      <button type="button" id="btn-reset-defaults" class="btn btn-light border">
+        <i class="bi bi-arrow-counterclockwise"></i> Khôi phục mặc định
+      </button>
+      <button type="submit" id="btn-save-settings" class="btn btn-save-primary">
+        <i class="bi bi-check2-circle"></i> Lưu &amp; Đồng bộ AI
+      </button>
+    </div>
+  </div>
+
+</form>
+
+<!-- ================= CARD 4: ĐỔI MẬT KHẨU ================= -->
+<form method="POST" action="/driver/settings/change-password" id="change-password-form" class="mt-3">
+  <section class="sdc-card d-flex flex-column gap-3">
+    <div>
+      <h2 class="h3 mb-1 d-flex align-items-center gap-2">
+        <i class="bi bi-shield-lock-fill text-primary"></i>
+        <span>4. Bảo mật &amp; Đổi mật khẩu</span>
+      </h2>
+      <p class="text-muted small mb-0">
+        Thay đổi mật khẩu đăng nhập tài khoản tài xế (tối thiểu 6 ký tự).
+      </p>
+    </div>
+
+    <div class="row g-3">
+      <div class="col-12 col-md-4">
+        <label for="current_password" class="form-label fw-semibold small">Mật khẩu hiện tại</label>
+        <div class="input-group pw-input-group">
+          <input type="password" class="form-control" id="current_password" name="current_password"
+                 placeholder="Nhập mật khẩu cũ" autocomplete="current-password" required>
+          <button type="button" class="btn btn-toggle-pw js-toggle-pw" data-target="current_password"
+                  aria-label="Hiện hoặc ẩn mật khẩu hiện tại">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <label for="new_password" class="form-label fw-semibold small">Mật khẩu mới</label>
+        <div class="input-group pw-input-group">
+          <input type="password" class="form-control" id="new_password" name="new_password"
+                 placeholder="Tối thiểu 6 ký tự" minlength="6" autocomplete="new-password" required>
+          <button type="button" class="btn btn-toggle-pw js-toggle-pw" data-target="new_password"
+                  aria-label="Hiện hoặc ẩn mật khẩu mới">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <label for="confirm_password" class="form-label fw-semibold small">Xác nhận mật khẩu mới</label>
+        <div class="input-group pw-input-group">
+          <input type="password" class="form-control" id="confirm_password" name="confirm_password"
+                 placeholder="Nhập lại mật khẩu mới" minlength="6" autocomplete="new-password" required>
+          <button type="button" class="btn btn-toggle-pw js-toggle-pw" data-target="confirm_password"
+                  aria-label="Hiện hoặc ẩn xác nhận mật khẩu mới">
+            <i class="bi bi-eye"></i>
+          </button>
+        </div>
+        <div id="pw-match-error" class="text-danger small mt-1 d-none">
+          <i class="bi bi-exclamation-circle"></i> Mật khẩu xác nhận chưa khớp.
+        </div>
+      </div>
+    </div>
+
+    <div class="settings-actions pt-1">
+      <button type="submit" id="btn-change-password" class="btn btn-save-primary">
+        <i class="bi bi-key-fill"></i> Cập nhật mật khẩu
+      </button>
+    </div>
+  </section>
+</form>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    const confInput = document.getElementById("conf_threshold");
+    const warnInput = document.getElementById("ttc_warning_sec");
+    const dangerInput = document.getElementById("ttc_danger_sec");
+
+    const confVal = document.getElementById("conf-val");
+    const warnVal = document.getElementById("ttc-warn-val");
+    const dangerVal = document.getElementById("ttc-danger-val");
+    const errMsg = document.getElementById("ttc-error-msg");
+    const saveBtn = document.getElementById("btn-save-settings");
+
+    const syncValues = () => {
+      const c = parseFloat(confInput.value);
+      const w = parseFloat(warnInput.value);
+      const d = parseFloat(dangerInput.value);
+
+      confVal.textContent = c.toFixed(2);
+      warnVal.textContent = `${w.toFixed(1)} giây`;
+      dangerVal.textContent = `${d.toFixed(1)} giây`;
+
+      const isInvalid = d >= w;
+      errMsg.classList.toggle("d-none", !isInvalid);
+      saveBtn.disabled = isInvalid;
+    };
+
+    confInput.addEventListener("input", syncValues);
+    warnInput.addEventListener("input", syncValues);
+    dangerInput.addEventListener("input", syncValues);
+
+    // Áp dụng nhanh chế độ lái (Presets)
+    document.querySelectorAll(".js-preset").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        confInput.value = btn.dataset.conf;
+        warnInput.value = btn.dataset.warn;
+        dangerInput.value = btn.dataset.danger;
+        syncValues();
+      });
+    });
+
+    // Khôi phục mặc định
+    document.getElementById("btn-reset-defaults")?.addEventListener("click", () => {
+      document.querySelector('input[name="vehicle_type"][value="car"]').checked = true;
+      confInput.value = 0.50;
+      warnInput.value = 2.5;
+      dangerInput.value = 1.2;
+      document.getElementById("tts_enabled").checked = true;
+      document.getElementById("alert_sound_enabled").checked = true;
+      syncValues();
+    });
+
+    syncValues();
+
+    // Ẩn / hiện mật khẩu
+    document.querySelectorAll(".js-toggle-pw").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const input = document.getElementById(btn.dataset.target);
+        const icon = btn.querySelector("i");
+        if (!input || !icon) return;
+        const isHidden = input.type === "password";
+        input.type = isHidden ? "text" : "password";
+        icon.className = isHidden ? "bi bi-eye-slash" : "bi bi-eye";
+      });
+    });
+
+    // Kiểm tra khớp mật khẩu mới
+    const newPw = document.getElementById("new_password");
+    const confirmPw = document.getElementById("confirm_password");
+    const pwErr = document.getElementById("pw-match-error");
+    const btnChangePw = document.getElementById("btn-change-password");
+
+    const validatePasswordMatch = () => {
+      if (!newPw || !confirmPw || !pwErr || !btnChangePw) return;
+      const mismatch = confirmPw.value.length > 0 && newPw.value !== confirmPw.value;
+      pwErr.classList.toggle("d-none", !mismatch);
+      btnChangePw.disabled = mismatch;
+    };
+
+    newPw?.addEventListener("input", validatePasswordMatch);
+    confirmPw?.addEventListener("input", validatePasswordMatch);
+  });
+</script>
+{% endblock %}

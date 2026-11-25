@@ -1,0 +1,390 @@
+{% extends "base.html" %} {% block title %}Chi tiết cảnh báo - SmartDashcam{%
+endblock %} {% block body_class %}theme-soft-blue{% endblock %} {% block
+extra_css %}
+<style>
+  body.theme-soft-blue {
+    background: linear-gradient(135deg, #e8f3ff 0%, #f5f9ff 50%, #e1efff 100%);
+    color: #1e293b;
+  }
+
+  body.theme-soft-blue .sdc-topbar {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #dbeafe;
+  }
+
+  body.theme-soft-blue .sdc-card {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 1.15rem;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.06);
+  }
+
+  /* Khung ảnh chụp hiện trường */
+  .detail-snapshot-box {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    background: #0f172a;
+    border-radius: 0.95rem;
+    overflow: hidden;
+    border: 1px solid #bfdbfe;
+  }
+
+  .detail-snapshot-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    display: block;
+  }
+
+  /* Ô thông số tóm tắt */
+  .detail-stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+
+  .detail-stat-item {
+    padding: 0.85rem;
+    border-radius: 0.85rem;
+    background: #f8fbff;
+    border: 1px solid #e0ecff;
+  }
+
+  .detail-stat-label {
+    font-size: 0.78rem;
+    color: #64748b;
+    margin-bottom: 0.2rem;
+  }
+
+  .detail-stat-value {
+    font-size: clamp(0.95rem, 0.9rem + 0.3vw, 1.1rem);
+    font-weight: 700;
+    color: #1e293b;
+  }
+
+  /* Bảng đối tượng Desktop / Card Mobile */
+  .obj-desktop-table {
+    display: none;
+  }
+  .obj-mobile-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.65rem;
+  }
+
+  @media (min-width: 769px) {
+    .obj-desktop-table {
+      display: block;
+    }
+    .obj-mobile-list {
+      display: none;
+    }
+  }
+
+  .obj-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    color: #64748b;
+    background-color: #f8fbff;
+    border-bottom: 1px solid #dbeafe;
+  }
+
+  .obj-mobile-card {
+    padding: 0.85rem;
+    border-radius: 0.85rem;
+    background: #f8fbff;
+    border: 1px solid #e0ecff;
+  }
+
+  .bbox-code {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-size: 0.8rem;
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 0.2rem 0.45rem;
+    border-radius: 0.4rem;
+  }
+
+  .btn-back {
+    --bs-btn-color: var(--bs-primary);
+    --bs-btn-border-color: var(--bs-primary-border-subtle);
+
+    --bs-btn-hover-color: #fff;
+    --bs-btn-hover-bg: var(--bs-primary);
+    --bs-btn-hover-border-color: var(--bs-primary);
+
+    --bs-btn-active-color: #fff;
+    --bs-btn-active-bg: var(--bs-primary);
+    --bs-btn-active-border-color: var(--bs-primary);
+
+    transition: all 0.2s ease-in-out;
+  }
+
+  .btn-back:hover {
+    color: var(--bs-btn-active-color);
+    background-color: var(--bs-btn-active-bg);
+    border-color: var(--bs-btn-active-border-color);
+  }
+</style>
+{% endblock %} {% block content %} {% set lvl = (alert.risk_level or
+alert.severity or alert.alert_level or 'warning')|lower if alert else 'warning'
+%} {% set badge_cls = 'text-bg-danger' if lvl in ['danger', 'high', 'critical']
+else ('text-bg-warning' if lvl in ['warning', 'medium'] else 'text-bg-info') %}
+{% set badge_txt = 'Nguy hiểm' if lvl in ['danger', 'high', 'critical'] else
+('Cảnh báo' if lvl in ['warning', 'medium'] else 'Thông tin') %} {% set
+objects_list = alert_objects if alert_objects is defined else (alert.objects if
+alert and alert.objects is defined else []) %} {% set label_vi = { 'person':
+'Người đi bộ', 'bicycle': 'Xe đạp', 'car': 'Ô tô', 'motorcycle': 'Xe máy',
+'bus': 'Xe buýt', 'truck': 'Xe tải', 'cat': 'Mèo', 'dog': 'Chó' } %}
+
+<div class="d-flex flex-column gap-3">
+  <!-- ================= THANH ĐIỀU HƯỚNG QUAY LẠI ================= -->
+  <div
+    class="d-flex flex-wrap align-items-center justify-content-between gap-2"
+  >
+    <div class="d-flex align-items-center gap-2">
+      <a href="/driver/history" class="btn btn-light btn-back">
+        <i class="bi bi-arrow-left"></i>
+        <span>Quay lại</span>
+      </a>
+      <h1 class="h2 mb-0 text-primary">
+        Chi tiết cảnh báo #{{ alert.id if alert else '--' }}
+      </h1>
+    </div>
+
+    <span class="badge rounded-pill fs-6 px-3 py-2 {{ badge_cls }}"
+      >{{ badge_txt }}</span
+    >
+  </div>
+
+  <!-- ================= HÀNG 1: ẢNH CHỤP + THÔNG TIN TỔNG QUAN ================= -->
+  <div class="row g-3 align-items-stretch">
+    <!-- Cột trái: Ảnh chụp hiện trường -->
+    <div class="col-12 col-lg-7">
+      <div class="sdc-card h-100 d-flex flex-column">
+        <div class="d-flex align-items-center justify-content-between mb-2">
+          <h2 class="h3 mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-camera-fill text-primary"></i>
+            <span>Ảnh chụp hiện trường</span>
+          </h2>
+          {% if alert and alert.snapshot_path %}
+          <a
+            href="{{ alert.snapshot_path }}"
+            target="_blank"
+            class="btn btn-sm btn-outline-primary"
+          >
+            <i class="bi bi-arrows-fullscreen"></i> Mở ảnh gốc
+          </a>
+          {% endif %}
+        </div>
+
+        <div class="detail-snapshot-box my-auto">
+          {% if alert and alert.snapshot_path %}
+          <img
+            src="{{ alert.snapshot_path }}"
+            alt="Ảnh chụp cảnh báo #{{ alert.id }}"
+          />
+          {% else %}
+          <div
+            class="h-100 d-flex flex-column align-items-center justify-content-center text-light opacity-75 p-4 text-center"
+          >
+            <i class="bi bi-image fs-1 mb-2 text-primary"></i>
+            <span>Không có ảnh chụp cho sự kiện này</span>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+
+    <!-- Cột phải: Thông số tóm tắt -->
+    <div class="col-12 col-lg-5">
+      <div
+        class="sdc-card h-100 d-flex flex-column justify-content-between gap-3"
+      >
+        <div>
+          <h2 class="h3 mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-info-circle-fill text-primary"></i>
+            <span>Thông tin sự kiện</span>
+          </h2>
+
+          <div class="detail-stat-grid">
+            <div class="detail-stat-item">
+              <div class="detail-stat-label">Thời gian ghi nhận</div>
+              <div class="detail-stat-value">
+                {{ alert.created_at.strftime('%H:%M:%S') if alert and
+                alert.created_at else '--:--:--' }}
+              </div>
+              <div class="small text-muted">
+                {{ alert.created_at.strftime('%d/%m/%Y') if alert and
+                alert.created_at else '--/--/----' }}
+              </div>
+            </div>
+
+            <div class="detail-stat-item">
+              <div class="detail-stat-label">Min TTC (Thời gian va chạm)</div>
+              <div class="detail-stat-value text-danger">
+                {{ '%.2f giây'|format(alert.min_ttc) if alert and alert.min_ttc
+                is not none else '--' }}
+              </div>
+              <div class="small text-muted">Ngưỡng nguy hiểm gần nhất</div>
+            </div>
+
+            <div class="detail-stat-item">
+              <div class="detail-stat-label">Loại cảnh báo</div>
+              <div class="detail-stat-value">
+                {{ alert.alert_type if alert and alert.alert_type else 'Cảnh báo
+                va chạm' }}
+              </div>
+            </div>
+
+            <div class="detail-stat-item">
+              <div class="detail-stat-label">Số đối tượng phát hiện</div>
+              <div class="detail-stat-value text-primary">
+                {{ objects_list|length }} đối tượng
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div
+          class="p-3 rounded-3 bg-primary-subtle text-primary-emphasis small d-flex align-items-start gap-2"
+        >
+          <i class="bi bi-lightbulb-fill mt-1 flex-shrink-0"></i>
+          <span
+            >Dữ liệu vị trí (Bounding Box) và ước lượng TTC của từng đối tượng
+            được trích xuất trực tiếp từ mô hình AI tại thời điểm cảnh
+            báo.</span
+          >
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= HÀNG 2: CHI TIẾT ĐỐI TƯỢNG PHÁT HIỆN ================= -->
+  <div class="sdc-card">
+    <div class="sdc-card-header mb-3">
+      <h2 class="h3 mb-0 d-flex align-items-center gap-2">
+        <i class="bi bi-bounding-box-circles text-primary"></i>
+        <span>Danh sách đối tượng trong khung hình</span>
+      </h2>
+      <span class="badge rounded-pill bg-primary-subtle text-primary px-3 py-2">
+        {{ objects_list|length }} đối tượng
+      </span>
+    </div>
+
+    {% if objects_list and objects_list|length > 0 %}
+    <!-- Desktop: Bảng chi tiết -->
+    <div class="obj-desktop-table table-responsive">
+      <table class="table table-hover align-middle mb-0 obj-table">
+        <thead>
+          <tr>
+            <th>Track ID</th>
+            <th>Loại đối tượng</th>
+            <th>Tọa độ (BBox)</th>
+            <th>Estimated TTC</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for obj in objects_list %} {% set raw_label = obj.object_label or
+          obj.object_class or obj.label or '' %} {% set display_label =
+          label_vi.get(raw_label|lower, raw_label) if raw_label else 'Vật cản'
+          %} {% set bbox_str = '[%d, %d, %d, %d]'|format(obj.bbox_x1,
+          obj.bbox_y1, obj.bbox_x2, obj.bbox_y2) if obj.bbox_x1 is not none else
+          '--' %}
+          <tr>
+            <td class="fw-bold text-primary">
+              #{{ obj.track_id if obj.track_id is not none else '--' }}
+            </td>
+            <td class="fw-semibold">
+              {{ display_label }} {% if obj.confidence is not none %}
+              <span class="text-muted small fw-normal"
+                >({{ (obj.confidence * 100)|round|int }}%)</span
+              >
+              {% endif %}
+            </td>
+            <td><span class="bbox-code">{{ bbox_str }}</span></td>
+            <td>
+              <span
+                class="fw-bold {{ 'text-danger' if obj.estimated_ttc is not none and obj.estimated_ttc <= 1.5 else 'text-dark' }}"
+              >
+                {{ '%.2f s'|format(obj.estimated_ttc) if obj.estimated_ttc is
+                not none else '--' }}
+              </span>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile: Card dọc -->
+    <div class="obj-mobile-list">
+      {% for obj in objects_list %} {% set raw_label = obj.object_label or
+      obj.object_class or obj.label or '' %} {% set display_label =
+      label_vi.get(raw_label|lower, raw_label) if raw_label else 'Vật cản' %} {%
+      set bbox_str = '[%d, %d, %d, %d]'|format(obj.bbox_x1, obj.bbox_y1,
+      obj.bbox_x2, obj.bbox_y2) if obj.bbox_x1 is not none else '--' %}
+      <div class="obj-mobile-card">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+          <span class="fw-bold text-primary">
+            Track #{{ obj.track_id if obj.track_id is not none else '--' }}
+          </span>
+          <span class="badge text-bg-light border">
+            TTC:
+            <strong
+              >{{ '%.2f s'|format(obj.estimated_ttc) if obj.estimated_ttc is not
+              none else '--' }}</strong
+            >
+          </span>
+        </div>
+        <div class="fw-semibold mb-1">
+          {{ display_label }} {% if obj.confidence is not none %}
+          <span class="text-muted small fw-normal"
+            >({{ (obj.confidence * 100)|round|int }}%)</span
+          >
+          {% endif %}
+        </div>
+        <div class="small text-muted">
+          BBox: <span class="bbox-code">{{ bbox_str }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <!-- Mobile: Card dọc -->
+    <div class="obj-mobile-list">
+      {% for obj in objects_list %}
+      <div class="obj-mobile-card">
+        <div class="d-flex align-items-center justify-content-between mb-1">
+          <span class="fw-bold text-primary"
+            >Track #{{ obj.track_id if obj.track_id is not none else '--'
+            }}</span
+          >
+          <span class="badge text-bg-light border">
+            TTC:
+            <strong
+              >{{ '%.2f s'|format(obj.estimated_ttc) if obj.estimated_ttc is not
+              none else '--' }}</strong
+            >
+          </span>
+        </div>
+        <div class="fw-semibold mb-1">
+          {{ obj.object_class or obj.label or 'Vật cản' }}
+        </div>
+        <div class="small text-muted">
+          BBox: <span class="bbox-code">{{ obj.bbox or '--' }}</span>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center text-muted py-4">
+      <i class="bi bi-box-seam fs-2 text-primary opacity-50 d-block mb-1"></i>
+      <small>Chưa có dữ liệu chi tiết đối tượng cho cảnh báo này.</small>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

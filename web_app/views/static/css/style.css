@@ -1,0 +1,333 @@
+/* ==========================================================================
+   SMARTDASHCAM - RESPONSIVE DESIGN SYSTEM (MOBILE-FIRST)
+   Breakpoints: Base (<481px) -> 481px -> 769px -> 1025px
+   ========================================================================== */
+
+:root {
+  /* Bảng màu đồng bộ phong cách Soft-Blue từ trang Auth */
+  --sdc-primary: #2563eb;
+  --sdc-primary-hover: #1d4ed8;
+  --sdc-soft-blue: #eff6ff;
+  --sdc-bg: #f4f7fb;
+  --sdc-surface: #ffffff;
+  --sdc-text: #1e293b;
+  --sdc-text-muted: #64748b;
+  --sdc-border: #e2e8f0;
+
+  /* Màu trạng thái cảnh báo ADAS */
+  --sdc-danger: #dc2626;
+  --sdc-warning: #f59e0b;
+  --sdc-success: #16a34a;
+
+  /* Chế độ tối dành riêng cho HUD */
+  --hud-bg: #0b1120;
+  --hud-surface: #111827;
+  --hud-border: #1f2937;
+  --hud-text: #f8fafc;
+
+  /* Fluid Spacing & Radius (dùng rem để đồng bộ khi zoom) */
+  --sdc-radius-sm: 0.5rem;
+  --sdc-radius-md: 0.875rem;
+  --sdc-radius-lg: 1.25rem;
+  --sdc-shadow: 0 4px 20px rgba(15, 23, 42, 0.06);
+
+  /* Kích thước vùng chạm tối thiểu 44x44px */
+  --touch-target: 44px;
+  --bottom-nav-height: 4.25rem;
+  --topbar-height: 3.75rem;
+}
+
+/* --- 1. Base & Responsive Typography (Mobile-First, min 14px) --- */
+html {
+  font-size: 16px;
+  scroll-behavior: smooth;
+}
+
+body {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  font-size: clamp(0.875rem, 0.85rem + 0.25vw, 1rem); /* 14px -> 16px */
+  line-height: 1.5;
+  color: var(--sdc-text);
+  background-color: var(--sdc-bg);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow-x: hidden;
+}
+
+h1, .h1 { font-size: clamp(1.375rem, 1.15rem + 1.2vw, 2rem); font-weight: 700; }
+h2, .h2 { font-size: clamp(1.1875rem, 1.05rem + 0.8vw, 1.5rem); font-weight: 700; }
+h3, .h3 { font-size: clamp(1.0625rem, 0.98rem + 0.45vw, 1.25rem); font-weight: 600; }
+
+/* --- 2. Touch Target >= 44x44px --- */
+.btn,
+.nav-link,
+.form-control,
+.form-select,
+.sdc-touch-target {
+  min-height: var(--touch-target);
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  border-radius: var(--sdc-radius-sm);
+  font-weight: 500;
+  padding: 0.5rem 1rem;
+}
+
+.btn-icon-only {
+  min-width: var(--touch-target);
+  min-height: var(--touch-target);
+  padding: 0;
+}
+
+/* --- 3. Fluid Layout & Cards --- */
+.sdc-main {
+  flex: 1 0 auto;
+  width: 100%;
+  padding: 1rem 0.75rem;
+}
+
+/* Chừa khoảng trống dưới đáy cho Bottom Nav trên Mobile (Tài xế) */
+body.has-bottom-nav .sdc-main {
+  padding-bottom: calc(var(--bottom-nav-height) + 1.25rem);
+}
+
+.sdc-card {
+  background-color: var(--sdc-surface);
+  border: 1px solid var(--sdc-border);
+  border-radius: var(--sdc-radius-lg);
+  box-shadow: var(--sdc-shadow);
+  padding: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sdc-card-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+/* --- 4. Responsive Images (Chống méo ảnh) --- */
+.sdc-img-cover {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.sdc-thumb {
+  width: 4.5rem;
+  height: 3.25rem;
+  border-radius: var(--sdc-radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--sdc-border);
+}
+
+/* --- 5. Top Navbar (Mobile-First) --- */
+.sdc-topbar {
+  min-height: var(--topbar-height);
+  background-color: var(--sdc-surface);
+  border-bottom: 1px solid var(--sdc-border);
+  position: sticky;
+  top: 0;
+  z-index: 1030;
+}
+
+.sdc-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 700;
+  font-size: clamp(1rem, 0.95rem + 0.35vw, 1.2rem);
+  color: var(--sdc-primary);
+  text-decoration: none;
+  min-height: var(--touch-target);
+}
+
+.sdc-nav-desktop {
+  display: none; /* Ẩn trên mobile, chỉ hiện từ 1025px */
+}
+
+.sdc-nav-desktop .nav-link {
+  color: var(--sdc-text-muted);
+  font-weight: 500;
+  padding: 0.5rem 0.875rem;
+  border-radius: var(--sdc-radius-sm);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.sdc-nav-desktop .nav-link:hover,
+.sdc-nav-desktop .nav-link.active {
+  background-color: var(--sdc-soft-blue);
+  color: var(--sdc-primary);
+}
+
+/* --- 6. Mobile Bottom Navigation Bar (Cho Tài xế) --- */
+.sdc-bottom-nav {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  right: 0;
+  height: var(--bottom-nav-height);
+  background-color: var(--sdc-surface);
+  border-top: 1px solid var(--sdc-border);
+  display: flex;
+  align-items: stretch;
+  justify-content: space-around;
+  z-index: 1030;
+  padding: 0.25rem 0.5rem;
+  box-shadow: 0 -4px 16px rgba(15, 23, 42, 0.06);
+}
+
+.sdc-bottom-nav-item {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.15rem;
+  text-decoration: none;
+  color: var(--sdc-text-muted);
+  font-size: 0.75rem;
+  font-weight: 500;
+  border-radius: var(--sdc-radius-sm);
+  min-height: var(--touch-target);
+}
+
+.sdc-bottom-nav-item i {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
+.sdc-bottom-nav-item.active {
+  color: var(--sdc-primary);
+  background-color: var(--sdc-soft-blue);
+  font-weight: 600;
+}
+
+/* --- 7. Dark Cockpit Mode (Dành riêng cho trang HUD) --- */
+body.theme-hud-dark {
+  background-color: var(--hud-bg);
+  color: var(--hud-text);
+}
+
+body.theme-hud-dark .sdc-topbar,
+body.theme-hud-dark .sdc-bottom-nav {
+  background-color: var(--hud-surface);
+  border-color: var(--hud-border);
+}
+
+body.theme-hud-dark .sdc-brand,
+body.theme-hud-dark .sdc-nav-desktop .nav-link.active,
+body.theme-hud-dark .sdc-bottom-nav-item.active {
+  color: #60a5fa;
+  background-color: rgba(37, 99, 235, 0.16);
+}
+
+body.theme-hud-dark .sdc-card {
+  background-color: var(--hud-surface);
+  border-color: var(--hud-border);
+  color: var(--hud-text);
+}
+
+body.theme-hud-dark .text-muted {
+  color: #94a3b8 !important;
+}
+
+/* --- 8. Toast Container (Flash Messages không làm nhảy bố cục) --- */
+.sdc-toast-container {
+  position: fixed;
+  top: calc(var(--topbar-height) + 0.75rem);
+  right: 0.75rem;
+  left: 0.75rem;
+  z-index: 1080;
+  pointer-events: none;
+}
+
+.sdc-toast-container .toast {
+  pointer-events: auto;
+  border-radius: var(--sdc-radius-md);
+  border: none;
+  box-shadow: 0 10px 25px rgba(15, 23, 42, 0.15);
+}
+
+/* ==========================================================================
+   MEDIA QUERIES (THEO ĐÚNG 4 MỐC BREAKPOINT CHUẨN)
+   ========================================================================== */
+
+/* Mốc 2: Điện thoại lớn, Phablet (481px - 768px) */
+@media (min-width: 481px) {
+  .sdc-main {
+    padding: 1.25rem 1rem;
+  }
+
+  .sdc-card {
+    padding: 1.25rem;
+  }
+
+  .sdc-toast-container {
+    left: auto;
+    width: 22rem;
+  }
+}
+
+/* Mốc 3: Máy tính bảng / Tablet (769px - 1024px) */
+@media (min-width: 769px) {
+  .sdc-main {
+    padding: 1.5rem 1.5rem;
+  }
+
+  .sdc-card {
+    padding: 1.5rem;
+  }
+}
+
+/* Mốc 4: Laptop & Desktop (1025px trở lên) */
+@media (min-width: 1025px) {
+  .sdc-nav-desktop {
+    display: flex;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .sdc-mobile-only {
+    display: none !important;
+  }
+
+  .sdc-bottom-nav {
+    display: none;
+  }
+
+  body.has-bottom-nav .sdc-main {
+    padding-bottom: 2rem;
+  }
+
+  .sdc-main {
+    padding: 1.75rem 2rem;
+  }
+}
+
+/* Tối ưu khi xoay ngang điện thoại (Landscape) trên trang HUD */
+@media (max-height: 500px) and (orientation: landscape) {
+  .sdc-topbar {
+    min-height: 3rem;
+  }
+
+  .sdc-bottom-nav {
+    height: 3.25rem;
+  }
+
+  .sdc-bottom-nav-item span {
+    display: none; /* Chỉ hiện icon để tiết kiệm chiều dọc khi xoay ngang */
+  }
+}

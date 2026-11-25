@@ -1,0 +1,356 @@
+{% extends "base.html" %}
+
+{% block title %}Tổng quan hệ thống - SmartDashcam{% endblock %}
+{% block body_class %}theme-soft-blue{% endblock %}
+
+{% block extra_css %}
+<style>
+  body.theme-soft-blue {
+    background: linear-gradient(135deg, #e8f3ff 0%, #f5f9ff 50%, #e1efff 100%);
+    color: #1e293b;
+  }
+
+  body.theme-soft-blue .sdc-topbar {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #dbeafe;
+  }
+
+  body.theme-soft-blue .sdc-card {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 1.15rem;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.06);
+  }
+
+  /* Thẻ KPI thuần số liệu */
+  .dash-kpi-card {
+    height: 100%;
+    display: flex;
+    align-items: center;
+    gap: 0.95rem;
+    padding: 1.1rem 1.2rem;
+  }
+
+  .dash-kpi-icon {
+    width: 3.15rem;
+    height: 3.15rem;
+    border-radius: 0.9rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.45rem;
+    flex-shrink: 0;
+  }
+
+  /* Dòng trạng thái dịch vụ nền */
+  .service-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    padding: 0.75rem 0.9rem;
+    border-radius: 0.85rem;
+    background: #f8fbff;
+    border: 1px solid #e0ecff;
+  }
+
+  .status-dot {
+    width: 0.6rem;
+    height: 0.6rem;
+    border-radius: 50%;
+    display: inline-block;
+    flex-shrink: 0;
+  }
+  .status-dot.online { background: #16a34a; box-shadow: 0 0 8px #22c55e; }
+  .status-dot.standby { background: #f59e0b; }
+
+  /* Thanh phân bố nhóm biển báo */
+  .cat-bar-item {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+  }
+
+  .cat-progress {
+    height: 0.55rem;
+    border-radius: 999px;
+    background-color: #eff6ff;
+    overflow: hidden;
+  }
+
+  /* Bảng Desktop -> Card Mobile */
+  .dash-desktop-table { display: none; }
+  .dash-mobile-list { display: flex; flex-direction: column; gap: 0.65rem; }
+
+  @media (min-width: 769px) {
+    .dash-desktop-table { display: block; }
+    .dash-mobile-list { display: none; }
+  }
+
+  .dash-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    background-color: #f8fbff;
+    border-bottom: 1px solid #dbeafe;
+    padding: 0.75rem;
+  }
+
+  .dash-table td {
+    vertical-align: middle;
+    padding: 0.75rem;
+    border-color: #eef2ff;
+  }
+
+  .dash-mobile-item {
+    padding: 0.85rem;
+    border-radius: 0.85rem;
+    background: #f8fbff;
+    border: 1px solid #e0ecff;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set st = stats if stats is defined and stats else {} %}
+{% set total_users = st.total_users if st.total_users is defined else 0 %}
+{% set total_drivers = st.total_drivers if st.total_drivers is defined else 0 %}
+{% set total_signs = st.total_signs if st.total_signs is defined else 0 %}
+{% set total_models = st.total_models if st.total_models is defined else 0 %}
+{% set total_alerts = st.total_alerts if st.total_alerts is defined else 0 %}
+
+{% set ai_online = ai_status.online if (ai_status is defined and ai_status and ai_status.online is defined) else false %}
+{% set active_sign_model = active_models.sign if (active_models is defined and active_models and active_models.sign is defined) else 'Chưa kích hoạt' %}
+{% set active_obs_model = active_models.obstacle if (active_models is defined and active_models and active_models.obstacle is defined) else 'yolo11n.pt (COCO + ByteTrack)' %}
+{% set cat_stats = category_stats if category_stats is defined and category_stats else [
+  {'name': 'Biển báo cấm', 'count': 0, 'color': 'bg-danger'},
+  {'name': 'Biển báo nguy hiểm', 'count': 0, 'color': 'bg-warning'},
+  {'name': 'Biển hiệu lệnh', 'count': 0, 'color': 'bg-primary'},
+  {'name': 'Biển chỉ dẫn', 'count': 0, 'color': 'bg-info'}
+] %}
+{% set alert_list = recent_alerts if recent_alerts is defined and recent_alerts else [] %}
+
+<div class="d-flex flex-column gap-3">
+
+  <!-- ================= HÀNG 1: 4 THẺ KPI TỔNG QUAN ================= -->
+  <div class="row g-3">
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="sdc-card dash-kpi-card">
+        <div class="dash-kpi-icon bg-primary-subtle text-primary">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div>
+          <div class="small text-muted">Tài khoản hệ thống</div>
+          <div class="fs-4 fw-bold lh-sm">{{ total_users }}</div>
+          <div class="small text-primary">{{ total_drivers }} tài xế đang hoạt động</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="sdc-card dash-kpi-card">
+        <div class="dash-kpi-icon bg-info-subtle text-info-emphasis">
+          <i class="bi bi-sign-stop-fill"></i>
+        </div>
+        <div>
+          <div class="small text-muted">Từ điển biển báo</div>
+          <div class="fs-4 fw-bold lh-sm">{{ total_signs }}</div>
+          <div class="small text-muted">Đồng bộ RAM Cache</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="sdc-card dash-kpi-card">
+        <div class="dash-kpi-icon bg-success-subtle text-success">
+          <i class="bi bi-cpu-fill"></i>
+        </div>
+        <div>
+          <div class="small text-muted">Phiên bản Model AI</div>
+          <div class="fs-4 fw-bold lh-sm">{{ total_models }}</div>
+          <div class="small text-success">Local Hot-Reload</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-6 col-xl-3">
+      <div class="sdc-card dash-kpi-card">
+        <div class="dash-kpi-icon bg-warning-subtle text-warning-emphasis">
+          <i class="bi bi-exclamation-triangle-fill"></i>
+        </div>
+        <div>
+          <div class="small text-muted">Sự kiện va chạm</div>
+          <div class="fs-4 fw-bold lh-sm">{{ total_alerts }}</div>
+          <div class="small text-muted">Mức WARNING &amp; CRITICAL</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= HÀNG 2: GIÁM SÁT AI SERVICE & PHÂN BỐ BIỂN BÁO ================= -->
+  <div class="row g-3">
+
+    <!-- Cột trái: Tình trạng vận hành AI Service & RAM -->
+    <div class="col-12 col-lg-7">
+      <section class="sdc-card h-100 d-flex flex-column gap-3">
+        <div class="d-flex align-items-center justify-content-between">
+          <h2 class="h3 mb-0 d-flex align-items-center gap-2">
+            <i class="bi bi-activity text-primary"></i>
+            <span>Tình trạng dịch vụ AI</span>
+          </h2>
+          <span class="badge rounded-pill {{ 'text-bg-success' if ai_online else 'text-bg-warning' }}">
+            {{ 'Đang chạy' if ai_online else 'Chế độ chờ (:8001)' }}
+          </span>
+        </div>
+
+        <div class="d-flex flex-column gap-2">
+          <div class="service-row">
+            <div class="d-flex align-items-center gap-2">
+              <span class="status-dot {{ 'online' if ai_online else 'standby' }}"></span>
+              <div>
+                <div class="fw-semibold small">FastAPI AI Service</div>
+                <div class="text-muted" style="font-size: 0.78rem;">WebSocket nhận diện thời gian thực (<code>/ws/detect</code>)</div>
+              </div>
+            </div>
+            <span class="small fw-semibold {{ 'text-success' if ai_online else 'text-warning-emphasis' }}">
+              {{ 'Online' if ai_online else 'Standby' }}
+            </span>
+          </div>
+
+          <div class="service-row">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-sign-stop text-primary fs-5"></i>
+              <div>
+                <div class="fw-semibold small">Model Biển báo (YOLOv11n)</div>
+                <div class="text-muted" style="font-size: 0.78rem;">{{ active_sign_model }}</div>
+              </div>
+            </div>
+            <span class="badge bg-primary-subtle text-primary">RAM</span>
+          </div>
+
+          <div class="service-row">
+            <div class="d-flex align-items-center gap-2">
+              <i class="bi bi-bounding-box text-primary fs-5"></i>
+              <div>
+                <div class="fw-semibold small">Model Vật cản (COCO + ByteTrack)</div>
+                <div class="text-muted" style="font-size: 0.78rem;">{{ active_obs_model }}</div>
+              </div>
+            </div>
+            <span class="badge bg-primary-subtle text-primary">RAM</span>
+          </div>
+        </div>
+      </section>
+    </div>
+
+    <!-- Cột phải: Phân bố 4 nhóm biển báo -->
+    <div class="col-12 col-lg-5">
+      <section class="sdc-card h-100 d-flex flex-column justify-content-between gap-3">
+        <div>
+          <h2 class="h3 mb-3 d-flex align-items-center gap-2">
+            <i class="bi bi-bar-chart-fill text-primary"></i>
+            <span>Phân bố danh mục biển báo</span>
+          </h2>
+
+          <div class="d-flex flex-column gap-3">
+            {% for c in cat_stats %}
+              {% set pct = ((c.count / total_signs) * 100)|round|int if total_signs > 0 else 0 %}
+              <div class="cat-bar-item">
+                <div class="d-flex justify-content-between small">
+                  <span class="fw-medium">{{ c.name }}</span>
+                  <span class="text-muted fw-semibold">{{ c.count }} biển ({{ pct }}%)</span>
+                </div>
+                <div class="cat-progress">
+                  <div class="progress-bar {{ c.color or 'bg-primary' }}" style="width: {{ pct }}%; height: 100%;"></div>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+
+        <div class="small text-muted pt-2 border-top border-primary-subtle">
+          Dữ liệu được tổng hợp từ bảng <code>traffic_sign_catalog</code> và <code>traffic_sign_categories</code>.
+        </div>
+      </section>
+    </div>
+
+  </div>
+
+  <!-- ================= HÀNG 3: CẢNH BÁO VA CHẠM GẦN ĐÂY ================= -->
+  <section class="sdc-card">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-2 mb-3">
+      <h2 class="h3 mb-0 d-flex align-items-center gap-2">
+        <i class="bi bi-clock-history text-primary"></i>
+        <span>Cảnh báo va chạm gần đây</span>
+      </h2>
+      <span class="badge rounded-pill bg-primary-subtle text-primary">{{ alert_list|length }} sự kiện mới nhất</span>
+    </div>
+
+    {% if alert_list|length > 0 %}
+      <!-- Desktop Bảng -->
+      <div class="dash-desktop-table table-responsive">
+        <table class="table table-hover align-middle mb-0 dash-table">
+          <thead>
+            <tr>
+              <th>Thời gian</th>
+              <th>Tài xế</th>
+              <th>Loại cảnh báo</th>
+              <th>Mức độ</th>
+              <th>Min TTC</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for item in alert_list %}
+              {% set lvl = (item.severity or item.alert_level or 'warning')|lower %}
+              {% set badge_cls = 'text-bg-danger' if lvl in ['danger', 'high', 'critical'] else 'text-bg-warning' %}
+              <tr>
+                <td class="text-nowrap small fw-medium">
+                  {{ item.created_at.strftime('%d/%m/%Y %H:%M:%S') if (item.created_at is defined and item.created_at) else '--' }}
+                </td>
+                <td class="fw-semibold">
+                  {{ item.user.full_name if (item.user is defined and item.user) else 'Tài xế #' ~ (item.user_id or '--') }}
+                </td>
+                <td>{{ item.alert_type or 'Cảnh báo va chạm' }}</td>
+                <td><span class="badge rounded-pill {{ badge_cls }}">{{ lvl|upper }}</span></td>
+                <td class="fw-bold text-primary">
+                  {{ '%.2f s'|format(item.min_ttc) if (item.min_ttc is defined and item.min_ttc is not none) else '--' }}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- Mobile Card -->
+      <div class="dash-mobile-list">
+        {% for item in alert_list %}
+          {% set lvl = (item.severity or item.alert_level or 'warning')|lower %}
+          {% set badge_cls = 'text-bg-danger' if lvl in ['danger', 'high', 'critical'] else 'text-bg-warning' %}
+          <div class="dash-mobile-item">
+            <div class="d-flex align-items-center justify-content-between mb-1">
+              <span class="fw-bold small">
+                {{ item.user.full_name if (item.user is defined and item.user) else 'Tài xế #' ~ (item.user_id or '--') }}
+              </span>
+              <span class="badge rounded-pill {{ badge_cls }}">{{ lvl|upper }}</span>
+            </div>
+            <div class="small text-muted mb-1">
+              {{ item.alert_type or 'Cảnh báo va chạm' }} • TTC:
+              <strong class="text-primary">{{ '%.2f s'|format(item.min_ttc) if (item.min_ttc is defined and item.min_ttc is not none) else '--' }}</strong>
+            </div>
+            <div class="text-muted" style="font-size: 0.78rem;">
+              {{ item.created_at.strftime('%d/%m/%Y %H:%M:%S') if (item.created_at is defined and item.created_at) else '--' }}
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div class="text-center text-muted py-4">
+        <i class="bi bi-shield-check fs-2 text-primary opacity-50 d-block mb-1"></i>
+        <small>Chưa có sự kiện cảnh báo va chạm nào được ghi nhận.</small>
+      </div>
+    {% endif %}
+  </section>
+
+</div>
+{% endblock %}

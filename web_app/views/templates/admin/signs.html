@@ -1,0 +1,589 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý biển báo - SmartDashcam{% endblock %}
+{% block body_class %}theme-soft-blue{% endblock %}
+
+{% block extra_css %}
+<style>
+  body.theme-soft-blue {
+    background: linear-gradient(135deg, #e8f3ff 0%, #f5f9ff 50%, #e1efff 100%);
+    color: #1e293b;
+  }
+
+  body.theme-soft-blue .sdc-topbar {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #dbeafe;
+  }
+
+  body.theme-soft-blue .sdc-card {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 1.15rem;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.06);
+  }
+
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    border: none;
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+  }
+
+  .btn-primary-gradient:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    color: #ffffff;
+  }
+
+  /* Icon biển báo chuẩn chống méo */
+  .sign-icon-box {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.65rem;
+    border: 1px solid #dbeafe;
+    background: #f8fbff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .sign-icon-box img {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    padding: 0.2rem;
+  }
+
+  .sign-code-chip {
+    font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    font-weight: 700;
+    font-size: 0.85rem;
+    padding: 0.25rem 0.55rem;
+    border-radius: 0.45rem;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+  }
+
+  /* Desktop Bảng -> Mobile Card */
+  .signs-desktop-table { display: none; }
+  .signs-mobile-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  @media (min-width: 769px) {
+    .signs-desktop-table { display: block; }
+    .signs-mobile-list { display: none; }
+  }
+
+  .signs-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    background-color: #f8fbff;
+    border-bottom: 1px solid #dbeafe;
+    padding: 0.85rem 0.75rem;
+  }
+
+  .signs-table td {
+    vertical-align: middle;
+    padding: 0.8rem 0.75rem;
+    border-color: #eef2ff;
+  }
+
+  .sign-mobile-card {
+    padding: 0.9rem;
+    border-radius: 0.95rem;
+    background: #f8fbff;
+    border: 1px solid #e0ecff;
+  }
+
+  /* Thanh phân trang */
+  .sdc-pagination-bar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 1rem;
+    padding-top: 0.9rem;
+    border-top: 1px solid #e0ecff;
+  }
+
+  .sdc-pagination .page-link {
+    border-radius: 0.55rem;
+    border: 1px solid #dbeafe;
+    color: #334155;
+    font-weight: 600;
+    min-width: 2.25rem;
+    text-align: center;
+    margin: 0 0.15rem;
+    transition: all 0.15s ease;
+  }
+
+  .sdc-pagination .page-link:hover {
+    background-color: #eff6ff;
+    border-color: #93c5fd;
+    color: #1d4ed8;
+  }
+
+  .sdc-pagination .page-item.active .page-link {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    border-color: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 4px 10px rgba(37, 99, 235, 0.22);
+  }
+
+  .sdc-pagination .page-item.disabled .page-link {
+    background-color: #f8fafc;
+    color: #94a3b8;
+    border-color: #e2e8f0;
+  }
+
+  .status-pill-tab {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: 1px solid #bfdbfe;
+    background: #f8fbff;
+    color: #475569;
+    transition: all 0.15s ease;
+  }
+
+  .status-pill-tab:hover {
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  .status-pill-tab.active {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    border-color: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+
+  .status-pill-tab.active-deleted {
+    background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+    border-color: #475569;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(71, 85, 105, 0.2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set sign_list = signs if signs is defined and signs else [] %}
+{% set cat_list = categories if categories is defined and categories else [] %}
+{% set cur_status = status if (status is defined and status) else 'active' %}
+{% set cnt_active = active_count if (active_count is defined and active_count is not none) else sign_list|length %}
+{% set cnt_deleted = deleted_count if (deleted_count is defined and deleted_count is not none) else 0 %}
+
+<div class="d-flex flex-column gap-3">
+
+  <!-- ================= TIÊU ĐỀ & NÚT THÊM MỚI ================= -->
+  <div class="sdc-card">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <h1 class="h2 mb-1 text-primary d-flex align-items-center gap-2">
+          <i class="bi bi-sign-stop-fill"></i>
+          <span>Danh mục biển báo</span>
+        </h1>
+        <p class="text-muted small mb-0">
+          Quản lý mã biển báo (khớp <code>data.yaml</code>), kịch bản đọc TTS và mức độ ưu tiên.
+        </p>
+      </div>
+
+      <!-- Điều hướng sang trang sign_form.html (Thêm mới) -->
+      <a href="/admin/signs/new" class="btn btn-primary-gradient">
+        <i class="bi bi-plus-lg"></i>
+        <span>Thêm biển báo</span>
+      </a>
+    </div>
+
+    <!-- Tab chuyển Đang hoạt động / Đã xóa mềm -->
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <a href="/admin/signs?status=active"
+         class="status-pill-tab {{ 'active' if cur_status == 'active' else '' }}">
+        <i class="bi bi-check-circle-fill"></i>
+        <span>Đang hoạt động</span>
+        <span class="badge rounded-pill {{ 'bg-white text-primary' if cur_status == 'active' else 'bg-primary-subtle text-primary' }}">
+          {{ cnt_active }}
+        </span>
+      </a>
+
+      <a href="/admin/signs?status=deleted"
+         class="status-pill-tab {{ 'active-deleted' if cur_status == 'deleted' else '' }}">
+        <i class="bi bi-trash3-fill"></i>
+        <span>Đã xóa mềm</span>
+        <span class="badge rounded-pill {{ 'bg-white text-secondary' if cur_status == 'deleted' else 'bg-secondary-subtle text-secondary' }}">
+          {{ cnt_deleted }}
+        </span>
+      </a>
+    </div>
+
+    <!-- Thanh tìm kiếm & bộ lọc -->
+    <div class="row g-2 mt-3 pt-3 border-top border-primary-subtle">
+      <div class="col-12 col-md-7">
+        <div class="input-group">
+          <span class="input-group-text bg-light border-primary-subtle text-primary">
+            <i class="bi bi-search"></i>
+          </span>
+          <input type="text" id="sign-search-input" class="form-control border-primary-subtle"
+                 placeholder="Tìm theo mã (P-102, W-224...) hoặc tên biển báo...">
+        </div>
+      </div>
+
+      <div class="col-12 col-md-5">
+        <select id="sign-category-filter" class="form-select border-primary-subtle" aria-label="Lọc theo nhóm biển báo">
+          <option value="all" selected>Tất cả nhóm biển báo</option>
+          {% if cat_list %}
+            {% for c in cat_list %}
+              <option value="{{ c.id }}">{{ c.name }}</option>
+            {% endfor %}
+          {% else %}
+            <option value="1">Biển báo cấm</option>
+            <option value="2">Biển báo nguy hiểm</option>
+            <option value="3">Biển hiệu lệnh</option>
+            <option value="4">Biển chỉ dẫn</option>
+          {% endif %}
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= DANH SÁCH BIỂN BÁO ================= -->
+  <div class="sdc-card" id="signs-list-card">
+    {% if sign_list|length > 0 %}
+
+      <!-- 1. Bảng Desktop / Tablet -->
+      <div class="signs-desktop-table table-responsive">
+        <table class="table table-hover align-middle mb-0 signs-table">
+          <thead>
+            <tr>
+              <th>Biển báo</th>
+              <th>Mã (data.yaml)</th>
+              <th>Nhóm</th>
+              <th>Kịch bản đọc (TTS)</th>
+              <th>Ưu tiên</th>
+              <th class="text-end">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in sign_list %}
+              {% set s_cat_id = s.category_id if s.category_id is defined else '' %}
+              {% set s_cat_name = s.category.name if (s.category is defined and s.category) else 'Chưa phân nhóm' %}
+              {% set s_name = s.name if s.name is defined else (s.sign_name if s.sign_name is defined else '') %}
+              {% set s_priority = s.priority if s.priority is defined and s.priority is not none else 1 %}
+
+              <tr class="sign-row"
+                  data-search="{{ (s.sign_code or '')|lower }} {{ (s_name or '')|lower }} {{ (s.tts_script or '')|lower }}"
+                  data-cat="{{ s_cat_id }}">
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="sign-icon-box">
+                      {% if s.icon_url %}
+                        <img src="{{ s.icon_url }}" alt="{{ s.sign_code }}">
+                      {% else %}
+                        <i class="bi bi-sign-stop text-primary fs-4"></i>
+                      {% endif %}
+                    </div>
+                    <div class="fw-semibold">{{ s_name or s.sign_code }}</div>
+                  </div>
+                </td>
+                <td><span class="sign-code-chip">{{ s.sign_code }}</span></td>
+                <td><span class="badge rounded-pill bg-primary-subtle text-primary">{{ s_cat_name }}</span></td>
+                <td class="small text-muted" style="max-width: 18rem;">
+                  <div class="text-truncate" title="{{ s.tts_script or '' }}">{{ s.tts_script or '--' }}</div>
+                </td>
+                <td>
+                  <span class="badge {{ 'text-bg-danger' if s_priority >= 3 else ('text-bg-warning' if s_priority == 2 else 'text-bg-secondary') }}">
+                    Mức {{ s_priority }}
+                  </span>
+                </td>
+                {% set is_deleted = (s.deleted_at is defined and s.deleted_at is not none) %}
+                <td class="text-end text-nowrap">
+                  {% if not is_deleted %}
+                    <a href="/admin/signs/{{ s.id }}/edit"
+                       class="btn btn-sm btn-outline-primary btn-icon-only"
+                       title="Chỉnh sửa">
+                      <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger btn-icon-only js-delete-sign"
+                            title="Xóa biển báo"
+                            data-id="{{ s.id }}"
+                            data-code="{{ s.sign_code or '' }}">
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  {% else %}
+                    <form method="POST" action="/admin/signs/{{ s.id }}/restore" class="d-inline">
+                      <button type="submit" class="btn btn-sm btn-outline-success" title="Khôi phục biển báo">
+                        <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
+                      </button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 2. Card Mobile -->
+      <div class="signs-mobile-list">
+        {% for s in sign_list %}
+          {% set s_cat_id = s.category_id if s.category_id is defined else '' %}
+          {% set s_cat_name = s.category.name if (s.category is defined and s.category) else 'Chưa phân nhóm' %}
+          {% set s_name = s.name if s.name is defined else (s.sign_name if s.sign_name is defined else '') %}
+          {% set s_priority = s.priority if s.priority is defined and s.priority is not none else 1 %}
+
+          <article class="sign-mobile-card sign-row"
+                   data-search="{{ (s.sign_code or '')|lower }} {{ (s_name or '')|lower }} {{ (s.tts_script or '')|lower }}"
+                   data-cat="{{ s_cat_id }}">
+            <div class="d-flex align-items-start gap-3">
+              <div class="sign-icon-box">
+                {% if s.icon_url %}
+                  <img src="{{ s.icon_url }}" alt="{{ s.sign_code }}">
+                {% else %}
+                  <i class="bi bi-sign-stop text-primary fs-4"></i>
+                {% endif %}
+              </div>
+
+              <div class="flex-grow-1 min-w-0">
+                <div class="d-flex align-items-center justify-content-between gap-2 mb-1">
+                  <span class="sign-code-chip">{{ s.sign_code }}</span>
+                  <span class="badge rounded-pill bg-primary-subtle text-primary">{{ s_cat_name }}</span>
+                </div>
+                <div class="fw-bold mb-1">{{ s_name or s.sign_code }}</div>
+                <div class="small text-muted mb-2">{{ s.tts_script or 'Chưa có kịch bản TTS' }}</div>
+
+                <div class="d-flex align-items-center justify-content-between pt-2 border-top border-primary-subtle">
+                  <span class="badge {{ 'text-bg-danger' if s_priority >= 3 else ('text-bg-warning' if s_priority == 2 else 'text-bg-secondary') }}">
+                    Ưu tiên: Mức {{ s_priority }}
+                  </span>
+                  {% set is_deleted = (s.deleted_at is defined and s.deleted_at is not none) %}
+                  <div class="d-flex gap-2">
+                    {% if not is_deleted %}
+                      <a href="/admin/signs/{{ s.id }}/edit" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-pencil-square"></i> Sửa
+                      </a>
+                      <button type="button"
+                              class="btn btn-sm btn-outline-danger js-delete-sign"
+                              data-id="{{ s.id }}"
+                              data-code="{{ s.sign_code or '' }}">
+                        <i class="bi bi-trash3"></i> Xóa
+                      </button>
+                    {% else %}
+                      <form method="POST" action="/admin/signs/{{ s.id }}/restore" class="d-inline">
+                        <button type="submit" class="btn btn-sm btn-outline-success">
+                          <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
+                        </button>
+                      </form>
+                    {% endif %}
+                  </div>
+                </div>
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+      <!-- Thông báo khi tìm kiếm / lọc không có kết quả -->
+      <div id="signs-filter-empty" class="text-center text-muted py-4 d-none">
+        <i class="bi bi-search fs-2 text-primary opacity-50 d-block mb-1"></i>
+        <small>Không tìm thấy biển báo nào phù hợp với từ khóa hoặc nhóm đã chọn.</small>
+      </div>
+
+      <!-- Thanh phân trang -->
+      <div id="signs-pagination-bar" class="sdc-pagination-bar d-none">
+        <div id="signs-page-info" class="small text-muted fw-medium"></div>
+        <nav aria-label="Phân trang danh mục biển báo">
+          <ul id="signs-pagination" class="pagination pagination-sm mb-0 sdc-pagination"></ul>
+        </nav>
+      </div>
+
+    {% else %}
+      <div class="text-center py-5">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary mb-3"
+             style="width: 4.5rem; height: 4.5rem;">
+          <i class="bi {{ 'bi-trash3' if cur_status == 'deleted' else 'bi-sign-stop' }} fs-1"></i>
+        </div>
+        {% if cur_status == 'deleted' %}
+          <h2 class="h3 mb-1">Không có biển báo đã xóa mềm</h2>
+          <p class="text-muted small mb-0">Các biển báo bị xóa mềm sẽ hiển thị tại đây để bạn khôi phục khi cần.</p>
+        {% else %}
+          <h2 class="h3 mb-1">Chưa có biển báo nào</h2>
+          <p class="text-muted small mb-3">Thêm mới biển báo để đồng bộ với mô hình YOLO và hệ thống đọc giọng nói TTS.</p>
+          <a href="/admin/signs/new" class="btn btn-primary-gradient">
+            <i class="bi bi-plus-lg"></i> Thêm biển báo đầu tiên
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ================= MODAL XÁC NHẬN XÓA MỀM ================= -->
+<div class="modal fade" id="deleteSignModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form method="POST" action="/admin/signs/delete" id="deleteSignForm" class="modal-content border-0 shadow-lg" style="border-radius: 1.15rem;">
+      <div class="modal-body text-center p-4">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger mb-3"
+             style="width: 3.5rem; height: 3.5rem;">
+          <i class="bi bi-trash3-fill fs-4"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Xóa biển báo?</h5>
+        <p class="small text-muted mb-3">
+          Bạn có chắc muốn xóa mềm biển báo <strong id="delete-sign-code-label"></strong>?
+        </p>
+        <input type="hidden" name="sign_id" id="delete-sign-id">
+        <div class="d-flex gap-2 justify-content-center">
+          <button type="button" class="btn btn-light border flex-fill" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-danger flex-fill">Xóa</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Tìm kiếm + Lọc theo nhóm + Phân trang (6 dòng / trang)
+    const PAGE_SIZE = 6;
+    const searchInput = document.getElementById("sign-search-input");
+    const catFilter = document.getElementById("sign-category-filter");
+    const desktopRows = Array.from(document.querySelectorAll(".signs-desktop-table tbody tr.sign-row"));
+    const mobileCards = Array.from(document.querySelectorAll(".signs-mobile-list article.sign-row"));
+    const filterEmptyEl = document.getElementById("signs-filter-empty");
+    const paginationBar = document.getElementById("signs-pagination-bar");
+    const pageInfoEl = document.getElementById("signs-page-info");
+    const paginationEl = document.getElementById("signs-pagination");
+
+    let currentPage = 1;
+
+    function buildPageList(totalPages, activePage) {
+      if (totalPages <= 7) {
+        return Array.from({ length: totalPages }, (_, i) => i + 1);
+      }
+      const pages = [1];
+      if (activePage > 3) pages.push("...");
+      const start = Math.max(2, activePage - 1);
+      const end = Math.min(totalPages - 1, activePage + 1);
+      for (let p = start; p <= end; p++) pages.push(p);
+      if (activePage < totalPages - 2) pages.push("...");
+      pages.push(totalPages);
+      return pages;
+    }
+
+    function renderSignsPage() {
+      if (desktopRows.length === 0 && mobileCards.length === 0) return;
+
+      const q = (searchInput?.value || "").trim().toLowerCase();
+      const cat = catFilter?.value || "all";
+
+      const matchedIndices = [];
+      desktopRows.forEach((row, idx) => {
+        const matchText = !q || (row.dataset.search || "").includes(q);
+        const matchCat = (cat === "all") || (String(row.dataset.cat) === String(cat));
+        if (matchText && matchCat) matchedIndices.push(idx);
+      });
+
+      const totalItems = matchedIndices.length;
+      const totalPages = Math.max(1, Math.ceil(totalItems / PAGE_SIZE));
+      if (currentPage > totalPages) currentPage = totalPages;
+
+      const startIdx = (currentPage - 1) * PAGE_SIZE;
+      const endIdx = startIdx + PAGE_SIZE;
+      const visibleSet = new Set(matchedIndices.slice(startIdx, endIdx));
+
+      desktopRows.forEach((row, idx) => {
+        row.style.display = visibleSet.has(idx) ? "" : "none";
+      });
+      mobileCards.forEach((card, idx) => {
+        card.style.display = visibleSet.has(idx) ? "" : "none";
+      });
+
+      if (filterEmptyEl) {
+        filterEmptyEl.classList.toggle("d-none", totalItems > 0);
+      }
+
+      if (!paginationBar || !paginationEl || !pageInfoEl) return;
+
+      if (totalItems === 0) {
+        paginationBar.classList.add("d-none");
+        return;
+      }
+
+      paginationBar.classList.remove("d-none");
+      const showFrom = startIdx + 1;
+      const showTo = Math.min(endIdx, totalItems);
+      pageInfoEl.textContent = `Hiển thị ${showFrom}–${showTo} / ${totalItems} biển báo (Trang ${currentPage}/${totalPages})`;
+
+      paginationEl.innerHTML = "";
+
+      const createItem = (label, targetPage, disabled, active) => {
+        const li = document.createElement("li");
+        li.className = `page-item${disabled ? " disabled" : ""}${active ? " active" : ""}`;
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "page-link";
+        btn.innerHTML = label;
+        if (!disabled && !active && typeof targetPage === "number") {
+          btn.addEventListener("click", () => {
+            currentPage = targetPage;
+            renderSignsPage();
+            document.getElementById("signs-list-card")?.scrollIntoView({ behavior: "smooth", block: "nearest" });
+          });
+        }
+        li.appendChild(btn);
+        return li;
+      };
+
+      paginationEl.appendChild(createItem("&laquo;", currentPage - 1, currentPage <= 1, false));
+      buildPageList(totalPages, currentPage).forEach((p) => {
+        if (p === "...") {
+          paginationEl.appendChild(createItem("&hellip;", null, true, false));
+        } else {
+          paginationEl.appendChild(createItem(String(p), p, false, p === currentPage));
+        }
+      });
+      paginationEl.appendChild(createItem("&raquo;", currentPage + 1, currentPage >= totalPages, false));
+    }
+
+    searchInput?.addEventListener("input", () => {
+      currentPage = 1;
+      renderSignsPage();
+    });
+    catFilter?.addEventListener("change", () => {
+      currentPage = 1;
+      renderSignsPage();
+    });
+
+    renderSignsPage();
+
+    // 2. Modal Xóa mềm
+    const deleteModalEl = document.getElementById("deleteSignModal");
+    if (deleteModalEl) {
+      const deleteModal = new bootstrap.Modal(deleteModalEl);
+      document.querySelectorAll(".js-delete-sign").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById("delete-sign-id").value = btn.dataset.id || "";
+          document.getElementById("delete-sign-code-label").textContent = btn.dataset.code || "";
+          deleteModal.show();
+        });
+      });
+    }
+  });
+</script>
+{% endblock %}

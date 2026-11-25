@@ -1,0 +1,482 @@
+{% extends "base.html" %}
+
+{% block title %}Quản lý tài khoản - SmartDashcam{% endblock %}
+{% block body_class %}theme-soft-blue{% endblock %}
+
+{% block extra_css %}
+<style>
+  body.theme-soft-blue {
+    background: linear-gradient(135deg, #e8f3ff 0%, #f5f9ff 50%, #e1efff 100%);
+    color: #1e293b;
+  }
+
+  body.theme-soft-blue .sdc-topbar {
+    background: rgba(255, 255, 255, 0.9);
+    backdrop-filter: blur(10px);
+    border-bottom: 1px solid #dbeafe;
+  }
+
+  body.theme-soft-blue .sdc-card {
+    background: #ffffff;
+    border: 1px solid #dbeafe;
+    border-radius: 1.15rem;
+    box-shadow: 0 8px 24px rgba(37, 99, 235, 0.06);
+  }
+
+  .btn-primary-gradient {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    border: none;
+    color: #ffffff;
+    font-weight: 600;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.22);
+  }
+
+  .btn-primary-gradient:hover {
+    background: linear-gradient(135deg, #1d4ed8 0%, #2563eb 100%);
+    color: #ffffff;
+  }
+
+  /* Thẻ KPI thống kê */
+  .kpi-card {
+    display: flex;
+    align-items: center;
+    gap: 0.9rem;
+    padding: 1rem 1.15rem;
+  }
+
+  .kpi-icon {
+    width: 3rem;
+    height: 3rem;
+    border-radius: 0.85rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.4rem;
+    flex-shrink: 0;
+  }
+
+  /* Avatar chữ cái đầu */
+  .user-avatar {
+    width: 2.6rem;
+    height: 2.6rem;
+    border-radius: 50%;
+    background: #eff6ff;
+    color: #1d4ed8;
+    border: 1px solid #bfdbfe;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    flex-shrink: 0;
+  }
+
+  /* Desktop Bảng -> Mobile Card */
+  .users-desktop-table { display: none; }
+  .users-mobile-list { display: flex; flex-direction: column; gap: 0.75rem; }
+
+  @media (min-width: 769px) {
+    .users-desktop-table { display: block; }
+    .users-mobile-list { display: none; }
+  }
+
+  .users-table th {
+    font-size: 0.78rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: #64748b;
+    background-color: #f8fbff;
+    border-bottom: 1px solid #dbeafe;
+    padding: 0.85rem 0.75rem;
+  }
+
+  .users-table td {
+    vertical-align: middle;
+    padding: 0.85rem 0.75rem;
+    border-color: #eef2ff;
+  }
+
+  .user-mobile-card {
+    padding: 0.9rem;
+    border-radius: 0.95rem;
+    background: #f8fbff;
+    border: 1px solid #e0ecff;
+  }
+
+  .status-pill-tab {
+    min-height: 44px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.45rem 1rem;
+    border-radius: 999px;
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-decoration: none;
+    border: 1px solid #bfdbfe;
+    background: #f8fbff;
+    color: #475569;
+    transition: all 0.15s ease;
+  }
+
+  .status-pill-tab:hover {
+    background: #eff6ff;
+    color: #1d4ed8;
+  }
+
+  .status-pill-tab.active {
+    background: linear-gradient(135deg, #2563eb 0%, #3b82f6 100%);
+    border-color: #2563eb;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(37, 99, 235, 0.2);
+  }
+
+  .status-pill-tab.active-deleted {
+    background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+    border-color: #475569;
+    color: #ffffff;
+    box-shadow: 0 4px 12px rgba(71, 85, 105, 0.2);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+{% set user_list = users if users is defined and users else [] %}
+{% set total_users = user_list|length %}
+{% set admin_count = user_list|selectattr('role', 'equalto', 0)|list|length %}
+{% set driver_count = user_list|selectattr('role', 'equalto', 1)|list|length %}
+{% set current_uid = session.get('user_id') %}
+
+<div class="d-flex flex-column gap-3">
+
+  <!-- ================= HÀNG 1: KPI THỐNG KÊ ================= -->
+  <div class="row g-3">
+    <div class="col-12 col-sm-4">
+      <div class="sdc-card kpi-card">
+        <div class="kpi-icon bg-primary-subtle text-primary">
+          <i class="bi bi-people-fill"></i>
+        </div>
+        <div>
+          <div class="small text-muted">Tổng tài khoản</div>
+          <div class="fs-4 fw-bold lh-sm">{{ total_users }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-4">
+      <div class="sdc-card kpi-card">
+        <div class="kpi-icon bg-success-subtle text-success">
+          <i class="bi bi-car-front-fill"></i>
+        </div>
+        <div>
+          <div class="small text-muted">Tài xế</div>
+          <div class="fs-4 fw-bold lh-sm">{{ driver_count }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="col-12 col-sm-4">
+      <div class="sdc-card kpi-card">
+        <div class="kpi-icon bg-info-subtle text-info-emphasis">
+          <i class="bi bi-shield-lock-fill"></i>
+        </div>
+        <div>
+          <div class="small text-muted">Quản trị viên</div>
+          <div class="fs-4 fw-bold lh-sm">{{ admin_count }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= HÀNG 2: TIÊU ĐỀ & BỘ LỌC ================= -->
+  <div class="sdc-card">
+    <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+      <div>
+        <h1 class="h2 mb-1 text-primary d-flex align-items-center gap-2">
+          <i class="bi bi-people-fill"></i>
+          <span>Quản lý tài khoản</span>
+        </h1>
+        <p class="text-muted small mb-0">
+          Quản lý người dùng, phân quyền Tài xế / Quản trị viên và thao tác xóa mềm an toàn.
+        </p>
+      </div>
+
+      <a href="/admin/users/new" class="btn btn-primary-gradient">
+        <i class="bi bi-person-plus-fill"></i>
+        <span>Thêm tài khoản</span>
+      </a>
+    </div>
+
+    <!-- Tab chuyển Đang hoạt động / Đã xóa mềm -->
+    <div class="d-flex flex-wrap gap-2 mt-3">
+      <a href="/admin/users?status=active"
+         class="status-pill-tab {{ 'active' if cur_status == 'active' else '' }}">
+        <i class="bi bi-check-circle-fill"></i>
+        <span>Đang hoạt động</span>
+        <span class="badge rounded-pill {{ 'bg-white text-primary' if cur_status == 'active' else 'bg-primary-subtle text-primary' }}">
+          {{ cnt_active }}
+        </span>
+      </a>
+
+      <a href="/admin/users?status=deleted"
+         class="status-pill-tab {{ 'active-deleted' if cur_status == 'deleted' else '' }}">
+        <i class="bi bi-trash3-fill"></i>
+        <span>Đã xóa mềm</span>
+        <span class="badge rounded-pill {{ 'bg-white text-secondary' if cur_status == 'deleted' else 'bg-secondary-subtle text-secondary' }}">
+          {{ cnt_deleted }}
+        </span>
+      </a>
+    </div>
+
+    <!-- Thanh tìm kiếm & lọc vai trò -->
+    <div class="row g-2 mt-3 pt-3 border-top border-primary-subtle">
+      <div class="col-12 col-md-8">
+        <div class="input-group">
+          <span class="input-group-text bg-light border-primary-subtle text-primary">
+            <i class="bi bi-search"></i>
+          </span>
+          <input type="text" id="user-search-input" class="form-control border-primary-subtle"
+                 placeholder="Tìm theo họ tên hoặc email...">
+        </div>
+      </div>
+
+      <div class="col-12 col-md-4">
+        <select id="user-role-filter" class="form-select border-primary-subtle" aria-label="Lọc theo vai trò">
+          <option value="all" selected>Tất cả vai trò</option>
+          <option value="1">Tài xế</option>
+          <option value="0">Quản trị viên (Admin)</option>
+        </select>
+      </div>
+    </div>
+  </div>
+
+  <!-- ================= HÀNG 3: DANH SÁCH TÀI KHOẢN ================= -->
+  <div class="sdc-card">
+    {% if total_users > 0 %}
+
+      <!-- 1. Bảng Desktop / Tablet -->
+      <div class="users-desktop-table table-responsive">
+        <table class="table table-hover align-middle mb-0 users-table">
+          <thead>
+            <tr>
+              <th>Người dùng</th>
+              <th>Email</th>
+              <th>Vai trò</th>
+              <th>Trạng thái</th>
+              <th>{{ 'Ngày xóa' if cur_status == 'deleted' else 'Ngày tạo' }}</th>
+              <th class="text-end">Thao tác</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for u in user_list %}
+              {% set u_name = u.full_name if (u.full_name is defined and u.full_name) else 'Người dùng' %}
+              {% set u_email = u.email if u.email is defined else '' %}
+              {% set u_role = u.role if u.role is defined else 1 %}
+              {% set is_deleted = (u.deleted_at is defined and u.deleted_at is not none) %}
+              {% set is_self = (current_uid is not none and u.id == current_uid) %}
+
+              <tr class="user-row"
+                  data-search="{{ u_name|lower }} {{ u_email|lower }}"
+                  data-role="{{ u_role }}">
+                <td>
+                  <div class="d-flex align-items-center gap-2">
+                    <div class="user-avatar">{{ u_name[0]|upper }}</div>
+                    <div>
+                      <div class="fw-semibold">
+                        {{ u_name }}
+                        {% if is_self %}
+                          <span class="badge bg-primary-subtle text-primary ms-1">Bạn</span>
+                        {% endif %}
+                      </div>
+                      <div class="small text-muted">ID #{{ u.id }}</div>
+                    </div>
+                  </div>
+                </td>
+                <td class="text-muted">{{ u_email }}</td>
+                <td>
+                  {% if u_role == 0 %}
+                    <span class="badge rounded-pill text-bg-primary">Quản trị viên</span>
+                  {% else %}
+                    <span class="badge rounded-pill text-bg-success">Tài xế</span>
+                  {% endif %}
+                </td>
+                <td>
+                  {% if is_deleted %}
+                    <span class="badge rounded-pill text-bg-secondary">Đã xóa mềm</span>
+                  {% else %}
+                    <span class="badge rounded-pill bg-success-subtle text-success">Hoạt động</span>
+                  {% endif %}
+                </td>
+                <td class="small text-muted text-nowrap">
+                  {% if cur_status == 'deleted' %}
+                    {{ u.deleted_at.strftime('%d/%m/%Y %H:%M') if (u.deleted_at is defined and u.deleted_at) else '--' }}
+                  {% else %}
+                    {{ u.created_at.strftime('%d/%m/%Y') if (u.created_at is defined and u.created_at) else '--' }}
+                  {% endif %}
+                </td>
+                <td class="text-end text-nowrap">
+                  {% if not is_deleted %}
+                    <a href="/admin/users/{{ u.id }}/edit"
+                       class="btn btn-sm btn-outline-primary btn-icon-only"
+                       title="Chỉnh sửa">
+                      <i class="bi bi-pencil-square"></i>
+                    </a>
+                    <button type="button"
+                            class="btn btn-sm btn-outline-danger btn-icon-only js-delete-user"
+                            title="{{ 'Không thể tự xóa tài khoản đang đăng nhập' if is_self else 'Xóa mềm tài khoản' }}"
+                            data-id="{{ u.id }}"
+                            data-name="{{ u_name }}"
+                            {{ 'disabled' if is_self else '' }}>
+                      <i class="bi bi-trash3"></i>
+                    </button>
+                  {% else %}
+                    <form method="POST" action="/admin/users/{{ u.id }}/restore" class="d-inline">
+                      <button type="submit" class="btn btn-sm btn-outline-success" title="Khôi phục tài khoản">
+                        <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
+                      </button>
+                    </form>
+                  {% endif %}
+                </td>
+              </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 2. Card Mobile -->
+      <div class="users-mobile-list">
+        {% for u in user_list %}
+          {% set u_name = u.full_name if (u.full_name is defined and u.full_name) else 'Người dùng' %}
+          {% set u_email = u.email if u.email is defined else '' %}
+          {% set u_role = u.role if u.role is defined else 1 %}
+          {% set is_deleted = (u.deleted_at is defined and u.deleted_at is not none) %}
+          {% set is_self = (current_uid is not none and u.id == current_uid) %}
+
+          <article class="user-mobile-card user-row"
+                   data-search="{{ u_name|lower }} {{ u_email|lower }}"
+                   data-role="{{ u_role }}">
+            <div class="d-flex align-items-center gap-3 mb-2">
+              <div class="user-avatar">{{ u_name[0]|upper }}</div>
+              <div class="flex-grow-1 min-w-0">
+                <div class="fw-bold text-truncate">
+                  {{ u_name }}
+                  {% if is_self %}<span class="badge bg-primary-subtle text-primary ms-1">Bạn</span>{% endif %}
+                </div>
+                <div class="small text-muted text-truncate">{{ u_email }}</div>
+              </div>
+              {% if u_role == 0 %}
+                <span class="badge rounded-pill text-bg-primary">Admin</span>
+              {% else %}
+                <span class="badge rounded-pill text-bg-success">Tài xế</span>
+              {% endif %}
+            </div>
+
+            <div class="d-flex align-items-center justify-content-between pt-2 border-top border-primary-subtle">
+              <span class="small text-muted">
+                {{ 'Đã xóa mềm' if is_deleted else 'Hoạt động' }}
+              </span>
+              <div class="d-flex gap-2">
+                {% if not is_deleted %}
+                  <a href="/admin/users/{{ u.id }}/edit" class="btn btn-sm btn-outline-primary">
+                    <i class="bi bi-pencil-square"></i> Sửa
+                  </a>
+                  <button type="button"
+                          class="btn btn-sm btn-outline-danger js-delete-user"
+                          data-id="{{ u.id }}"
+                          data-name="{{ u_name }}"
+                          {{ 'disabled' if is_self else '' }}>
+                    <i class="bi bi-trash3"></i> Xóa
+                  </button>
+                {% else %}
+                  <form method="POST" action="/admin/users/{{ u.id }}/restore" class="d-inline">
+                    <button type="submit" class="btn btn-sm btn-outline-success">
+                      <i class="bi bi-arrow-counterclockwise"></i> Khôi phục
+                    </button>
+                  </form>
+                {% endif %}
+              </div>
+            </div>
+          </article>
+        {% endfor %}
+      </div>
+
+    {% else %}
+      <div class="text-center py-5">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-primary-subtle text-primary mb-3"
+             style="width: 4.5rem; height: 4.5rem;">
+          <i class="bi {{ 'bi-trash3' if cur_status == 'deleted' else 'bi-people' }} fs-1"></i>
+        </div>
+        {% if cur_status == 'deleted' %}
+          <h2 class="h3 mb-1">Không có tài khoản đã xóa mềm</h2>
+          <p class="text-muted small mb-0">Các tài khoản bị xóa mềm sẽ xuất hiện tại đây để bạn khôi phục khi cần.</p>
+        {% else %}
+          <h2 class="h3 mb-1">Chưa có tài khoản nào</h2>
+          <p class="text-muted small mb-3">Tạo tài khoản mới cho tài xế hoặc quản trị viên hệ thống.</p>
+          <a href="/admin/users/new" class="btn btn-primary-gradient">
+            <i class="bi bi-person-plus-fill"></i> Thêm tài khoản
+          </a>
+        {% endif %}
+      </div>
+    {% endif %}
+  </div>
+
+</div>
+
+<!-- ================= MODAL XÁC NHẬN XÓA MỀM ================= -->
+<div class="modal fade" id="deleteUserModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-sm">
+    <form method="POST" action="/admin/users/delete" class="modal-content border-0 shadow-lg" style="border-radius: 1.15rem;">
+      <div class="modal-body text-center p-4">
+        <div class="d-inline-flex align-items-center justify-content-center rounded-circle bg-danger-subtle text-danger mb-3"
+             style="width: 3.5rem; height: 3.5rem;">
+          <i class="bi bi-person-x-fill fs-4"></i>
+        </div>
+        <h5 class="fw-bold mb-1">Xóa tài khoản?</h5>
+        <p class="small text-muted mb-3">
+          Bạn có chắc muốn xóa mềm tài khoản <strong id="delete-user-name-label"></strong>?
+        </p>
+        <input type="hidden" name="user_id" id="delete-user-id">
+        <div class="d-flex gap-2">
+          <button type="button" class="btn btn-light border flex-fill" data-bs-dismiss="modal">Hủy</button>
+          <button type="submit" class="btn btn-danger flex-fill">Xóa</button>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  document.addEventListener("DOMContentLoaded", () => {
+    // 1. Tìm kiếm & Lọc vai trò
+    const searchInput = document.getElementById("user-search-input");
+    const roleFilter = document.getElementById("user-role-filter");
+
+    const filterUsers = () => {
+      const q = (searchInput.value || "").trim().toLowerCase();
+      const r = roleFilter.value;
+      document.querySelectorAll(".user-row").forEach((el) => {
+        const matchText = !q || (el.dataset.search || "").includes(q);
+        const matchRole = (r === "all") || (String(el.dataset.role) === String(r));
+        el.style.display = (matchText && matchRole) ? "" : "none";
+      });
+    };
+
+    searchInput?.addEventListener("input", filterUsers);
+    roleFilter?.addEventListener("change", filterUsers);
+
+    // 2. Modal Xóa mềm
+    const deleteModalEl = document.getElementById("deleteUserModal");
+    if (deleteModalEl) {
+      const deleteModal = new bootstrap.Modal(deleteModalEl);
+      document.querySelectorAll(".js-delete-user").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          document.getElementById("delete-user-id").value = btn.dataset.id || "";
+          document.getElementById("delete-user-name-label").textContent = btn.dataset.name || "";
+          deleteModal.show();
+        });
+      });
+    }
+  });
+</script>
+{% endblock %}
