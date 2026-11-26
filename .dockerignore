@@ -1,0 +1,12 @@
+.git
+.gitignore
+__pycache__
+*.pyc
+web_app/.venv
+ai_service/.venv
+storage/database/*.db-shm
+storage/database/*.db-wal
+scripts/test_video_source
+tests
+docs
+*.bat

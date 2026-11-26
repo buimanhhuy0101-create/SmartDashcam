@@ -13,6 +13,13 @@ from ai_service.core.model_manager import ModelManager
 from ai_service.api.model_routes import router as model_router
 
 
+app = FastAPI(
+    title="SmartDashcam AI Service",
+    description="API xử lý nhận diện và phân tích hình ảnh giao thông",
+    version="1.0.0",
+    docs_url="/docs",
+    redoc_url="/redoc"
+)
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
